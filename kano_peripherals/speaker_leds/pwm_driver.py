@@ -13,6 +13,7 @@
 #  * It configures the PWM chip for autoincrement, to allow block transfers.
 
 
+
 import math
 import time
 
@@ -88,3 +89,9 @@ class PWM:
         time.sleep(0.005)
         self.i2cbus.write_byte_data(self.address, self.__MODE1, oldmode | 0x80)
 
+    def setAllPWM(self, on, off):
+        "Sets a all PWM channels"
+        self.i2cbus.write_byte_data(self.address, self.__ALL_LED_ON_L, on & 0xFF)
+        self.i2cbus.write_byte_data(self.address, self.__ALL_LED_ON_H, on >> 8)
+        self.i2cbus.write_byte_data(self.address, self.__ALL_LED_OFF_L, off & 0xFF)
+        self.i2cbus.write_byte_data(self.address, self.__ALL_LED_OFF_H, off >> 8)

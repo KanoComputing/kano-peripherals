@@ -135,6 +135,11 @@ def setAllLeds(values):
     for idx, val in enumerate(values[:NUM_LEDS]):
         setLed(idx, val)
 
+def setLedsOff():
+    """
+    NB, could power down the PWM here 
+    """
+    setAllLeds([(0, 0, 0)] * NUM_LEDS)
 
 # Not for production:
 def test1():
