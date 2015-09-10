@@ -9,9 +9,14 @@
 import low_level
 import high_level
 import os
-
+from kano.logging import logger
 
 def detect():
+    rc = os.system('modprobe i2c_dev')
+    if rc != 0:
+        logger.error('failed to load I2C kernel module')
+        return 1
+
     if low_level.detect():
         return 0
     else:
@@ -19,7 +24,7 @@ def detect():
 
 
 def detect_or_exit():
-    if low_level.detect():
+    if detect() == 0:
 
         # For now, we always reset the chip here, but later we may
         # want to only do this once to avoid glitching
@@ -31,7 +36,6 @@ def detect_or_exit():
 
 def notification_start(colours):
     detect_or_exit()
-    print colours
     if len(colours) == 0:
         colours1 = [(1.0, 0.27, 0.0)]
     else:
