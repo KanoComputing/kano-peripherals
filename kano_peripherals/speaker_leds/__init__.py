@@ -30,6 +30,15 @@ def detect_or_exit():
         exit(1)
 
 
+def stop_all():
+    """
+    Stop all animations.
+    Currently assumes all animations are run by kano-speakerleds, which
+    won't be correct eventually.
+    """
+    os.system('pkill --signal INT -f "kano-speakerleds notification"')
+
+
 def get_notification_colours(spec):
 
     # defaults:
@@ -41,6 +50,7 @@ def get_notification_colours(spec):
 
 def notification_start(spec):
     detect_or_exit()
+    stop_all()
     colours1, colours2 = get_notification_colours(spec)
 
     vf = high_level.pulse(colours1, colours2 * low_level.NUM_LEDS)
@@ -48,11 +58,12 @@ def notification_start(spec):
 
 
 def notification_stop():
-    os.system('pkill --signal INT -f "kano-speakerleds notification"')
+    stop_all()
 
 
 def initflow_pattern_start():
     detect_or_exit()
+    stop_all()
     vf = high_level.rotate(high_level.colourWheel)
     high_level.animate(vf, 60*60, 60*60*2, updateRate=0.005)
 
@@ -63,3 +74,4 @@ def initflow_pattern_stop():
 
 def all_off():
     detect_or_exit()
+    stop_all()

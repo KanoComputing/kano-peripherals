@@ -12,7 +12,6 @@ import time
 import math
 
 import signal
-import sys
 
 # catch signals to allow clean exit
 interrupted = False
@@ -23,7 +22,6 @@ def signal_handler(signal, frame):
     interrupted = True
 
 signal.signal(signal.SIGINT, signal_handler)
-
 
 
 def animate(valueFunction, duration, cycles, updateRate=0.02, mask=None):
