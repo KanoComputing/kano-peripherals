@@ -12,10 +12,23 @@ from smbus import SMBus
 import time
 import math
 from pwm_driver import PWM
+import os
 
 # Bus number is 1 on RPI2.
 
-i2cbus = SMBus(1)  # Everything except early 256MB pi'
+
+# lazy load logging to avoid 1 second startup time
+def logger():
+    import kano.logging
+    return kano.logging.logger
+
+
+module_loaded = os.system('modprobe i2c_dev') == 0
+if not module_loaded:
+    logger().error('failed to load I2C kernel module')
+    i2cbus = None
+else:
+    i2cbus = SMBus(1)  # Everything except early 256MB pi'
 
 # Addresses of PCA9685 on bus:
 
