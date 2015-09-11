@@ -9,14 +9,10 @@
 import low_level
 import high_level
 import os
-from kano.logging import logger
+import json
+
 
 def detect():
-    rc = os.system('modprobe i2c_dev')
-    if rc != 0:
-        logger.error('failed to load I2C kernel module')
-        return 1
-
     if low_level.detect():
         return 0
     else:
@@ -34,21 +30,20 @@ def detect_or_exit():
         exit(1)
 
 
-def notification_start(colours):
+def get_notification_colours(spec):
+
+    # defaults:
+    colours1 = [(1.0, 0.27, 0.0)] * low_level.NUM_LEDS
+    colours2 = [(0, 0, 0)] * low_level.NUM_LEDS
+
+    return (colours1, colours2)
+
+
+def notification_start(spec):
     detect_or_exit()
-    if len(colours) == 0:
-        colours1 = [(1.0, 0.27, 0.0)]
-    else:
-        colours1 = [tuple(map(float, colours[0]))]
+    colours1, colours2 = get_notification_colours(spec)
 
-    if len(colours) <= 1:
-        colours2 = [(0, 0, 0)]
-    else:
-        colours2 = [tuple(map(float, colours[1]))]
-
-    print colours1, colours2
-
-    vf = high_level.pulse(colours1 * low_level.NUM_LEDS, colours2 * low_level.NUM_LEDS)
+    vf = high_level.pulse(colours1, colours2 * low_level.NUM_LEDS)
     high_level.animate(vf, 60*60, 60*60*2, updateRate=0.005)
 
 

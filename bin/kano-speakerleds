@@ -21,9 +21,7 @@ def parse_args(args):
     if args['notification']:
         if args['start']:
 
-            speaker_leds.notification_start(zip(args['<red>'],
-                                                args['<green>'],
-                                                args['<blue>']))
+            speaker_leds.notification_start(args['<spec>'])
         elif args['stop']:
             speaker_leds.notification_stop()
     elif args['initflow']:
@@ -39,7 +37,7 @@ if __name__ == "__main__":
     args = docopt("""
     Usage:
       kano-speakerleds detect
-      kano-speakerleds notification (start|stop) [<red> <green> <blue>] [<red> <green> <blue>]
+      kano-speakerleds notification (start|stop) [<spec>...]
       kano-speakerleds initflow (start|stop)
       kano-speakerleds off
       kano-speakerleds -h | --help
