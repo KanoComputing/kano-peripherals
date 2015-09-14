@@ -9,5 +9,45 @@
 #
 # UNSTABLE for 2.1.1
 
+from kano_peripherals import speaker_leds
+
+from docopt import docopt
 
 
+def parse_args(args):
+    if args['detect']:
+        rc = speaker_leds.detect()
+        exit(rc)
+    if args['notification']:
+        if args['start']:
+
+            speaker_leds.notification_start(args['<spec>'])
+        elif args['stop']:
+            speaker_leds.notification_stop()
+    elif args['initflow']:
+        if args['start']:
+            speaker_leds.initflow_pattern_start()
+        elif args['stop']:
+            speaker_leds.initflow_pattern_stop()
+    elif args['off']:
+        speaker_leds.all_off()
+
+
+if __name__ == "__main__":
+    args = docopt("""
+    Usage:
+      kano-speakerleds detect
+      kano-speakerleds notification (start|stop) [<spec>...]
+      kano-speakerleds initflow (start|stop)
+      kano-speakerleds off
+      kano-speakerleds -h | --help
+
+    Options:
+      detect              Return 0 if the speaker LEDS are attached.
+      notification start  Start a notification display
+      notification start  Stop the notification display
+      initflow on         Display the initflow pattern
+      off                 clear leds
+    """)
+
+    parse_args(args)
