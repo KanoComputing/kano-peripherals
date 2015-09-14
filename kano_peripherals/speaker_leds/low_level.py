@@ -43,6 +43,8 @@ COLORS_PER_LED = 3
 
 LED_REG_BASE = 0x6
 
+SPEAKER_LED_GAMMA = 0.5
+
 
 def detect():
     """
@@ -83,10 +85,8 @@ def setup():
     p0.setPWMFreq(60)                        # Set frequency to 60 Hz
     p1.setPWMFreq(60)                        # Set frequency to 60 Hz
 
-gamma = 0.5
 
-
-def linearize(val, steps):
+def linearize(val, steps, gamma):
     return int(math.pow(steps, math.pow(val, gamma)))
 
 
@@ -105,7 +105,7 @@ def convertValToPWM(val, num):
     if QUANTIZE:
         val = int(val * 4095) & 0x1e00
     else:
-        val = linearize(val, 4096)
+        val = linearize(val, 4096, SPEAKER_LED_GAMMA)
 
     if val == 0:
         # all off needs a special value: set bit 12
