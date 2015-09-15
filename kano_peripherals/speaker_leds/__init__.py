@@ -11,6 +11,16 @@ import high_level
 import os
 import json
 
+LED_BLACK =   (0.0, 0.0, 0.0)
+LED_RED =     (1.0, 0.0, 0.0)
+LED_GREEN =   (0.0, 1.0, 0.0)
+LED_BLUE =    (0.0, 0.0, 1.0)
+LED_YELLOW =  (1.0, 1.0, 0.0)
+LED_CYAN =    (0.0, 1.0, 1.0)
+LED_MAGENTA = (1.0, 0.0, 1.0)
+
+LED_KANO_ORANGE = (1.0, 0x84/256.0, 0x2A/256.0)
+
 
 def detect():
     if low_level.detect():
@@ -62,15 +72,6 @@ def validate_colours(colours):
         colours = map(validate_colour, colours[:low_level.NUM_LEDS])
     return colours
 
-LED_BLACK =   (0.0, 0.0, 0.0)
-LED_RED =     (1.0, 0.0, 0.0)
-LED_GREEN =   (0.0, 1.0, 0.0)
-LED_BLUE =    (0.0, 0.0, 1.0)
-LED_YELLOW =  (1.0, 1.0, 0.0)
-LED_CYAN =    (0.0, 1.0, 1.0)
-LED_MAGENTA = (1.0, 0.0, 1.0)
-
-LED_KANO_ORANGE = (1.0, 0x84/256.0, 0x2A/256.0)
 
 
 def get_notification_colours(spec):
