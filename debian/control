@@ -7,6 +7,6 @@ Build-Depends: debhelper (>= 9)
 
 Package: kano-peripherals
 Architecture: all
-Depends: ${misc:Depends}, python, i2c-tools, python-smbus
+Depends: ${misc:Depends}, python, i2c-tools, python-smbus, python-serial
 Description: Support for Kano Peripherals
 
