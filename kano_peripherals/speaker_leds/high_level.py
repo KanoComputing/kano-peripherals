@@ -47,9 +47,15 @@ def animate(valueFunction, duration, cycles, updateRate=0.02, mask=None):
     low_level.setLedsOff()
 
 
+def constant(values):
+    def resultFunc(phase):
+        return values
+    return resultFunc
+
+
 def pulse(values, values2=None):
     if values2 is None:
-        values2 = [(0, 0, 0)] * low_level.NUM_LEDS
+        values2 = constant([(0, 0, 0)] * low_level.NUM_LEDS)
 
     def mix_vals(a, b, m, n):
         (r1, g1, b1) = a
@@ -59,11 +65,14 @@ def pulse(values, values2=None):
                 b1 * m + b2 * n)
 
     def resultFunc(phase):
+        values_t = values(phase)
+        values2_t = values2(phase)
+
         t = 2.0 * phase-1
         m = 1.0 - t * t
         n = 1.0 - m
 
-        mixed_values = [mix_vals(values[i], values2[i], m, n) for i in xrange(low_level.NUM_LEDS)]
+        mixed_values = [mix_vals(values_t[i], values2_t[i], m, n) for i in xrange(low_level.NUM_LEDS)]
 
         return mixed_values
 

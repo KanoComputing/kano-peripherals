@@ -25,10 +25,22 @@ def parse_args(args):
         elif args['stop']:
             speaker_leds.notification_stop()
     elif args['initflow']:
-        if args['start']:
-            speaker_leds.initflow_pattern_start()
-        elif args['stop']:
-            speaker_leds.initflow_pattern_stop()
+        try:
+            d = args.get('<duration>')
+            c = args.get('<cycles>')
+            if d:
+                d = float(d)
+            else:
+                d = 2.0
+            if c:
+                c = float(c)
+            else:
+                c = 4.0
+        except:
+            print "Duration and Cycles must be numbers"
+
+        speaker_leds.initflow_pattern_start(d,c)
+
     elif args['off']:
         speaker_leds.all_off()
 
@@ -38,7 +50,7 @@ if __name__ == "__main__":
     Usage:
       kano-speakerleds detect
       kano-speakerleds notification (start|stop) [<spec>...]
-      kano-speakerleds initflow (start|stop)
+      kano-speakerleds initflow [<duration>] [<cycles>]
       kano-speakerleds off
       kano-speakerleds -h | --help
 
