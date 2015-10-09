@@ -104,11 +104,12 @@ def get_notification_colours(spec):
 
 
 def notification_start(spec):
-    detect_or_exit()
-    stop_all()
     colours1, colours2 = get_notification_colours(spec)
+    stop_all()
+    detect_or_exit()
 
-    vf = high_level.pulse(colours1, colours2)
+    vf = high_level.pulse(high_level.constant(colours1),
+                          high_level.constant(colours2))
     high_level.animate(vf, 60*60, 60*60*2, updateRate=0.005)
 
 
@@ -116,15 +117,14 @@ def notification_stop():
     stop_all()
 
 
-def initflow_pattern_start():
-    detect_or_exit()
+def initflow_pattern_start(duration=2, cycles=4):
     stop_all()
-    vf = high_level.rotate(high_level.colourWheel)
-    high_level.animate(vf, 60*60, 60*60*2, updateRate=0.005)
+    detect_or_exit()
+    vf = high_level.rotate(high_level.colourWheel, cycles)
+    vf2 = high_level.pulse(vf)
+    high_level.animate(vf2, duration, 1.0, updateRate=0.005)
 
 
-def initflow_pattern_stop():
-    os.system('pkill --signal INT -f "kano-speakerleds initflow"')
 
 
 def all_off():
