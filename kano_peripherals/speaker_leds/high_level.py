@@ -100,7 +100,8 @@ def colourWheel(h, s=1.0, v=1.0):
         return (v, p, q)
 
 
-def rotate(valueFunc):
+def rotate(valueFunc, phase_scale=1.0):
     def resultFunc(phase):
+        phase = phase * phase_scale
         return [valueFunc(math.modf(phase + float(i)/low_level.NUM_LEDS)[0]) for i in xrange(low_level.NUM_LEDS)]
     return resultFunc

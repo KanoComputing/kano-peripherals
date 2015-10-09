@@ -120,9 +120,9 @@ def notification_stop():
 def initflow_pattern_start(duration=2, cycles=4):
     stop_all()
     detect_or_exit()
-    vf = high_level.rotate(high_level.colourWheel)
+    vf = high_level.rotate(high_level.colourWheel, cycles)
     vf2 = high_level.pulse(vf)
-    high_level.animate(vf2, duration, cycles, updateRate=0.005)
+    high_level.animate(vf2, duration, 1.0, updateRate=0.005)
 
 
 
