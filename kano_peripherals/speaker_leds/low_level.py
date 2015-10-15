@@ -68,8 +68,7 @@ def detect():
     except IOError:
         return False
 
-
-def setup():
+def setup(check=False):
     """
     """
 
@@ -79,11 +78,13 @@ def setup():
     p0 = PWM(i2cbus, CHIP0_ADDR)
     p1 = PWM(i2cbus, CHIP0_ADDR+1)
 
-    p0.reset()
-    p1.reset()
+    if not (check or p0.check()):
+        p0.reset()
+        p0.setPWMFreq(60)                        # Set frequency to 60 Hz
 
-    p0.setPWMFreq(60)                        # Set frequency to 60 Hz
-    p1.setPWMFreq(60)                        # Set frequency to 60 Hz
+    if not (check or p1.check()):
+        p1.reset()
+        p1.setPWMFreq(60)                        # Set frequency to 60 Hz
 
 
 def linearize(val, steps, gamma):

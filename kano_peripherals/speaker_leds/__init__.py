@@ -29,12 +29,12 @@ def detect():
         return 1
 
 
-def detect_or_exit():
+def detect_or_exit(check=True):
     if detect() == 0:
 
         # For now, we always reset the chip here, but later we may
         # want to only do this once to avoid glitching
-        low_level.setup()
+        low_level.setup(check=check)
         return
     else:
         exit(1)
@@ -128,6 +128,6 @@ def initflow_pattern_start(duration=2, cycles=4):
 
 
 def all_off():
-    detect_or_exit()
+    detect_or_exit(check=False)
     stop_all()
     low_level.setLedsOff()

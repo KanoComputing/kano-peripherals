@@ -42,6 +42,9 @@ class PWM:
     __INVRT              = 0x10
     __OUTDRV             = 0x04
 
+    _mode1_value = __ALLCALL | __AI
+    _mode2_value = 0
+
     def softwareReset(self):
         "Sends a software reset (SWRST) command to all the servo drivers on the bus"
 
@@ -56,11 +59,22 @@ class PWM:
         self.address = address
         self.i2cbus = bus
         self.debug = debug
+        self.prescale_value   = 0
+
+    def check(self):
+        " Check that mode1 is set to the same value as reset"
+        mode1 = self.i2cbus.read_byte_data(self.address, self.__MODE1)
+        mode2 = self.i2cbus.read_byte_data(self.address, self.__MODE2)
+        prescale = self.i2cbus.read_byte_data(self.address, self.__PRESCALE)
+
+        return (mode1 == self._mode1_value and
+                mode1 == self._mode2_value and
+                prescale == self.prescale_value)
 
     def reset(self):
         self.setAllPWM(0, 0)
-        self.i2cbus.write_byte_data(self.address, self.__MODE2, 0)
-        self.i2cbus.write_byte_data(self.address, self.__MODE1, self.__ALLCALL | self.__AI)
+        self.i2cbus.write_byte_data(self.address, self.__MODE2, self._mode2_value)
+        self.i2cbus.write_byte_data(self.address, self.__MODE1, self._mode1_value)
         time.sleep(0.005)                                       # wait for oscillator
 
         mode1 = self.i2cbus.read_byte_data(self.address, self.__MODE1)
@@ -84,7 +98,8 @@ class PWM:
         oldmode = self.i2cbus.read_byte_data(self.address, self.__MODE1)
         newmode = (oldmode & 0x7F) | 0x10             # sleep
         self.i2cbus.write_byte_data(self.address, self.__MODE1, newmode)        # go to sleep
-        self.i2cbus.write_byte_data(self.address, self.__PRESCALE, int(math.floor(prescale)))
+        self.prescale_value = int(math.floor(prescale))
+        self.i2cbus.write_byte_data(self.address, self.__PRESCALE, self.prescale_value)
         self.i2cbus.write_byte_data(self.address, self.__MODE1, oldmode)
         time.sleep(0.005)
         self.i2cbus.write_byte_data(self.address, self.__MODE1, oldmode | 0x80)
