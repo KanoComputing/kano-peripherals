@@ -34,7 +34,7 @@ else:
 
 CHIP0_ADDR = 0x40
 
-QUANTIZE = True
+QUANTIZE = False
 
 NUM_LEDS = 10
 LEDS_PER_CHIP = 5
@@ -87,7 +87,7 @@ def setup():
 
 
 def linearize(val, steps, gamma):
-    return int(math.pow(steps, math.pow(val, gamma)))
+    return int(math.pow(steps, math.pow(val, gamma)))-1
 
 
 def convertValToPWM(val, num):

@@ -19,7 +19,7 @@ LED_YELLOW =  (1.0, 1.0, 0.0)
 LED_CYAN =    (0.0, 1.0, 1.0)
 LED_MAGENTA = (1.0, 0.0, 1.0)
 
-LED_KANO_ORANGE = (1.0, 0x84/256.0, 0x2A/256.0)
+LED_KANO_ORANGE = (1.0, 0.51, 0.04)
 
 
 def detect():
