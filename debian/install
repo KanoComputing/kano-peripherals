@@ -1,2 +1,3 @@
 bin usr/
 kano_peripherals usr/lib/python2.7/dist-packages/
+etc/init.d etc
