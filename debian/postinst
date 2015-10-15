@@ -24,6 +24,9 @@ case "$1" in
         # Move the file to the sudoers directory
         mv $TMP_FILE /etc/sudoers.d/
 
+        # add kano-peripherals to startup
+        update-rc.d kano-peripherals defaults
+
         ;;
 esac
 

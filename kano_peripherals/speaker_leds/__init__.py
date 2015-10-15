@@ -130,3 +130,4 @@ def initflow_pattern_start(duration=2, cycles=4):
 def all_off():
     detect_or_exit()
     stop_all()
+    low_level.setLedsOff()
