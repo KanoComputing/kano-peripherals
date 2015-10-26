@@ -10,6 +10,7 @@ import low_level
 import high_level
 import os
 import json
+import time
 
 LED_BLACK =   (0.0, 0.0, 0.0)
 LED_RED =     (1.0, 0.0, 0.0)
@@ -125,6 +126,23 @@ def initflow_pattern_start(duration=2, cycles=4):
     high_level.animate(vf2, duration, 1.0, updateRate=0.005)
 
 
+def manufacturing_test_start(len1,len2,len3):
+    while not high_level.interrupted:
+        try:
+            low_level.setup(check=False)      
+            stop_all()
+            low_level.setAllLeds([(1.0, 0.0, 0.0)]*10)
+            time.sleep(len1)
+            low_level.setAllLeds([(0.0, 1.0, 0.0)]*10)
+            time.sleep(len2)
+            low_level.setAllLeds([(0.0, 0.0, 1.0)]*10)
+            time.sleep(len3)
+        except IOError:
+            print "Waiting for speaker"
+            time.sleep(1)
+        except low_level.NotDetected:
+            print "Waiting for speaker"
+            time.sleep(1)
 
 
 def all_off():
