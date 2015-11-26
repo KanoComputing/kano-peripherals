@@ -18,6 +18,16 @@ def parse_args(args):
     if args['detect']:
         rc = speaker_leds.detect()
         exit(rc)
+    if args['manu_test']:
+        try:
+            l1 = float(args['<len1>'])
+            l2 = float(args['<len2>'])
+            l3 = float(args['<len3>'])
+        except:
+            print "incorrect arguments to manu_test"
+            exit(1)
+
+        speaker_leds.manufacturing_test_start(l1, l2, l3)
     if args['notification']:
         if args['start']:
 
@@ -51,6 +61,7 @@ if __name__ == "__main__":
       kano-speakerleds detect
       kano-speakerleds notification (start|stop) [<spec>...]
       kano-speakerleds initflow [<duration>] [<cycles>]
+      kano-speakerleds manu_test <len1> <len2> <len3>
       kano-speakerleds off
       kano-speakerleds -h | --help
 

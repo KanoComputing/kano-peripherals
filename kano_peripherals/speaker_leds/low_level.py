@@ -68,12 +68,15 @@ def detect():
     except IOError:
         return False
 
+class NotDetected(Exception):
+    pass
+
 def setup(check=False):
     """
     """
 
     if not detect():
-        raise
+        raise NotDetected
 
     p0 = PWM(i2cbus, CHIP0_ADDR)
     p1 = PWM(i2cbus, CHIP0_ADDR+1)
