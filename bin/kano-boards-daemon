@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+
+# kano-boards-daemon
+#
+# Copyright (C) 2015 Kano Computing Ltd.
+# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
+#
+
+
+import sys
+from dbus.mainloop.glib import DBusGMainLoop
+
+from gi.repository import GObject
+
+from kano_peripherals.speaker_leds.driver.service import SpeakerLEDsService
+
+
+def main():
+    GObject.threads_init()
+    DBusGMainLoop(set_as_default=True)
+
+    # available services
+    speakerleds_service = SpeakerLEDsService()
+
+    GObject.MainLoop().run()
+
+
+if __name__ == '__main__':
+    sys.exit(main())

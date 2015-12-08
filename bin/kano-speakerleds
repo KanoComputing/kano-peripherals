@@ -3,22 +3,59 @@
 # kano-speakerleds
 #
 # Copyright (C) 2015 Kano Computing Ltd.
-# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU General Public License v2
+# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
 # Command for interacting with speaker LEDs
 #
 # UNSTABLE for 2.1.1
 
-from kano_peripherals import speaker_leds
+
+"""
+Usage:
+    kano-speakerleds detect
+    kano-speakerleds notification (start|stop) [<spec>...]
+    kano-speakerleds initflow [<duration>] [<cycles>]
+    kano-speakerleds off
+    kano-speakerleds manu_test <len1> <len2> <len3>
+    kano-speakerleds -h | --help
+
+Options:
+    detect              Return 0 if the speaker LEDS are attached.
+    notification        Start or stop a notification display.
+    initflow            Display the initflow pattern.
+    off                 Clear LEDs.
+    -h, --help          Show this message.
+"""
+
 
 from docopt import docopt
 
+from kano_peripherals import speaker_leds
 
-def parse_args(args):
+
+def main(args):
     if args['detect']:
         rc = speaker_leds.detect()
         exit(rc)
-    if args['manu_test']:
+
+    elif args['notification']:
+        if args['start']:
+            speaker_leds.notification_start(args['<spec>'])
+        elif args['stop']:
+            speaker_leds.notification_stop()
+
+    elif args['initflow']:
+        try:
+            duration = float(args.get('<duration>')) if args.get('<duration>') else 2.0
+            cycles = float(args.get('<cycles>')) if args.get('<cycles>') else 4.0
+        except:
+            print "Duration and Cycles must be numbers"
+        speaker_leds.initflow_pattern_start(duration, cycles)
+
+    elif args['off']:
+        speaker_leds.leds_off()
+
+    elif args['manu_test']:
         try:
             l1 = float(args['<len1>'])
             l2 = float(args['<len2>'])
@@ -28,49 +65,8 @@ def parse_args(args):
             exit(1)
 
         speaker_leds.manufacturing_test_start(l1, l2, l3)
-    if args['notification']:
-        if args['start']:
-
-            speaker_leds.notification_start(args['<spec>'])
-        elif args['stop']:
-            speaker_leds.notification_stop()
-    elif args['initflow']:
-        try:
-            d = args.get('<duration>')
-            c = args.get('<cycles>')
-            if d:
-                d = float(d)
-            else:
-                d = 2.0
-            if c:
-                c = float(c)
-            else:
-                c = 4.0
-        except:
-            print "Duration and Cycles must be numbers"
-
-        speaker_leds.initflow_pattern_start(d,c)
-
-    elif args['off']:
-        speaker_leds.all_off()
 
 
 if __name__ == "__main__":
-    args = docopt("""
-    Usage:
-      kano-speakerleds detect
-      kano-speakerleds notification (start|stop) [<spec>...]
-      kano-speakerleds initflow [<duration>] [<cycles>]
-      kano-speakerleds manu_test <len1> <len2> <len3>
-      kano-speakerleds off
-      kano-speakerleds -h | --help
-
-    Options:
-      detect              Return 0 if the speaker LEDS are attached.
-      notification start  Start a notification display
-      notification start  Stop the notification display
-      initflow on         Display the initflow pattern
-      off                 clear leds
-    """)
-
-    parse_args(args)
+    args = docopt(__doc__)
+    main(args)
