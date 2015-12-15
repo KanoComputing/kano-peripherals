@@ -15,6 +15,7 @@ Usage:
     kano-speakerleds detect
     kano-speakerleds notification (start|stop) [<spec>...]
     kano-speakerleds initflow [<duration>] [<cycles>]
+    kano-speakerleds cpu-monitor (start|stop) [<rate>]
     kano-speakerleds off
     kano-speakerleds manu_test <len1> <len2> <len3>
     kano-speakerleds -h | --help
@@ -23,7 +24,8 @@ Options:
     detect              Return 0 if the speaker LEDS are attached.
     notification        Start or stop a notification display.
     initflow            Display the initflow pattern.
-    off                 Clear LEDs.
+    cpu-monitor         Start or stop a cpu monitor animation.
+    off                 Clear LEDs and stop all animations.
     -h, --help          Show this message.
 """
 
@@ -49,11 +51,30 @@ def main(args):
             duration = float(args.get('<duration>')) if args.get('<duration>') else 2.0
             cycles = float(args.get('<cycles>')) if args.get('<cycles>') else 4.0
         except:
-            print "Duration and Cycles must be numbers"
+            print '<duration> and <cycles> must be int or float numbers'
+            exit(1)
+
         speaker_leds.initflow_pattern_start(duration, cycles)
 
+    elif args['cpu-monitor']:
+        '''
+        When kano-boards-daemon first detects the LED Speaker, it sets it up, and
+        starts this animation to run in the background.
+        '''
+        if args['start']:
+            try:
+                update_rate = int(args.get('<rate>')) if args.get('<rate>') else 5
+            except:
+                print '<rate> argument was not specified or not an int number'
+                exit(1)
+
+            speaker_leds.cpu_monitor_start(update_rate)
+
+        elif args['stop']:
+            speaker_leds.cpu_monitor_stop()
+
     elif args['off']:
-        speaker_leds.leds_off()
+        speaker_leds.off()
 
     elif args['manu_test']:
         try:
@@ -61,7 +82,7 @@ def main(args):
             l2 = float(args['<len2>'])
             l3 = float(args['<len3>'])
         except:
-            print "incorrect arguments to manu_test"
+            print '<len1> <len2> <len3> must be int or float numbers'
             exit(1)
 
         speaker_leds.manufacturing_test_start(l1, l2, l3)

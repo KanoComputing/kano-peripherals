@@ -3,9 +3,15 @@
 # Copyright (C) 2015 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
-# Low level programming of the LED chip. Also includes linerarity adjustment.
-# Setup of the chip uses pwm_driver.py, but led programming does not go
-# via that file to avoid overhead.
+# Low level programming of the LED Speaker chip through a DBus Service.
+# Calls to the API (set_led* methods) are serialised to address OS concurency.
+#
+# Using the high_level functions from multiple processes will MERGE animations!
+# It was thought that Kano apps using it would use lock() to get exclusive access.
+# The locking mechanism is a binary semaphore and REQUIRES one to unlock() it afterwards.
+# However, there is a safety mechanism in place in case that fails.
+#
+# A big TODO here is to have locks with priorities.
 
 
 import os
@@ -17,61 +23,102 @@ from smbus import SMBus
 
 from gi.repository import GObject
 
+from kano.logging import logger
+from kano.utils import run_bg, run_cmd, is_model_2_b
+
 from kano_peripherals.speaker_leds.driver.pwm_driver import PWM
 from kano_peripherals.paths import BUS_NAME, SPEAKER_LEDS_OBJECT_PATH, SPEAKER_LEDS_IFACE
 
 
 class SpeakerLEDsService(dbus.service.Object):
     """
-    TODO: description
+    This is a DBus Service provided by kano-boards-daemon.
+
+    It exports an object to /me/kano/boards/SpeakerLED and
+    its interface to me.kano.boards.SpeakerLED
+
+    Does not require sudo.
     """
 
     # LED Speaker Hardware Spec - Addresses of PCA9685 on bus
     # NOTE: most of these should not be exported to apps
     CHIP0_ADDR = 0x40
     LED_REG_BASE = 0x6
-    QUANTIZE = False         # this is public
     NUM_LEDS = 10            # this is public
     LEDS_PER_CHIP = 5
     COLOURS_PER_LED = 3
     SPEAKER_LED_GAMMA = 0.5
 
-    #
-    DETECT_THREAD_POLL_RATE = 1000 * 2  # ms TODO: how big should this be?
+    # polling rates of the threads used in the service
+    DETECT_THREAD_POLL_RATE = 1000 * 5      # ms TODO: how big should this be?
+    LOCKING_THREAD_POLL_RATE = 1000 * 10    # ms TODO: how big should this be?
+    CPU_MONITOR_POLL_RATE = 5               # s  TODO: how big should this be?
 
     def __init__(self):
         name = dbus.service.BusName(BUS_NAME, bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, name, SPEAKER_LEDS_OBJECT_PATH)
 
-        self.is_plugged = False
+        self.is_plugged = False     # flag for GPIO plugged / unplugged LED Speaker
+        self.is_locked = False      # flag for API locking by a process
+        self.locking_id = None      # unique bus name of the locking process
+        self.locking_pid = None     # PID of the locking process
+        self.locking_pid_name = ''  # the name of the process locking the API
 
         GObject.threads_init()
         GObject.timeout_add(self.DETECT_THREAD_POLL_RATE, self._detect_thread)
 
         self._init_i2cbus()
-
-    def _init_i2cbus(self):
-        module_loaded = os.system('modprobe i2c_dev') == 0
-        if not module_loaded:
-            self._logger().error('failed to load I2C kernel module')
-            self.i2cbus = None
-        else:
-            self.i2cbus = SMBus(1)  # Everything except early 256MB pi'
+        if not self.i2cbus:
+            logger.error('LED Speaker - Failed to load I2C kernel module')
 
     def _detect_thread(self):
         """
+        Detect if the LED Speaker is plugged in
+        This method is run in a separate thread with GObject.
+
+        It handles 2 events: onPlugged and onUnplugged. We setup the chip when
+        detected for it to become usable. On these events it also starts/stops
+        the cpu-monitor animation.
         """
         detected = self.detect()
 
-        # we just detected the LED Speaker being plugged in
+        # we just detected the LED Speaker being plugged in  TODO: emit a signal here?
         if detected and not self.is_plugged:
-            time.sleep(0.005)    # TODO: do I need this here?
             self.setup(False)
             self.set_leds_off()  # TODO: emit a signal here to do an anim instead?
+            self._start_cpu_monitor_animation()
+
+        # we just detected the LED Speaker was unplugged  TODO: emit a signal here?
+        if not detected and self.is_plugged:
+            self._stop_cpu_monitor_animation()
 
         self.is_plugged = detected
 
         return True  # keep calling this method indefinitely
+
+    def _locking_thread(self):
+        """
+        Check if the locking process is still alive.
+        This method is run in a separate thread with GObject.
+
+        If the process that locked the API has died, it automatically unlocks it.
+        """
+        try:
+            os.kill(self.locking_pid, 0)
+        except OSError:
+            # the locking process has died
+            if self.is_locked:
+                logger.warn('[{}] with PID [{}] died and forgot to unlock'
+                            ' the LED Speaker API. Unlocking.'
+                            .format(self.locking_pid_name, self.locking_pid))
+                self._do_unlock()
+
+        except Exception as e:
+            logger.warn('Something unexpected occurred in _locking_thread'
+                        ' - [{}]'.format(e))
+
+        # when locked, return continues to call this method and stops otherwise
+        return self.is_locked
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b')
     def detect(self):
@@ -86,58 +133,173 @@ class SpeakerLEDsService(dbus.service.Object):
         0x40 and 0x41, so test both of these and assume it is present if
         both respond.
         We use 'quick write' which seems to leave the chip in the same state.
+
+        Returns:
+            True or False if the LED Speaker was detected.
         """
         try:
-            self.i2cbus.write_quick(self.CHIP0_ADDR)
-            self.i2cbus.write_quick(self.CHIP0_ADDR + 1)
-            return True
+            if not self.i2cbus:
+                self._init_i2cbus()
+
+            if self.i2cbus:
+                self.i2cbus.write_quick(self.CHIP0_ADDR)
+                self.i2cbus.write_quick(self.CHIP0_ADDR + 1)
+                return True
+            else:
+                # could not initialise the i2cbus
+                return False
+
         except IOError:
+            # the LED Speaker is not plugged in
             return False
+        except Exception as e:
+            logger.error('LED Speaker - Something unexpected occurred in detect - [{}]'
+                         .format(e))
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='b', out_signature='')
     def setup(self, check):
         """
-        TODO: description
+        Setup the LED Speaker chip for it to become usable.
+
+        Args:
+            check - boolean to enable chip mode check
         """
 
         if not self.detect():
-            # raise NotDetected
-            self._logger().warn('LED Speaker Board was not detected!')
+            logger.warn('LED Speaker Board was not detected!')
             return
 
         p0 = PWM(self.i2cbus, self.CHIP0_ADDR)
         p1 = PWM(self.i2cbus, self.CHIP0_ADDR + 1)
 
-        if not (check or p0.check()):
+        if check and p0.check():
             p0.reset()
             p0.setPWMFreq(60)  # Set frequency to 60 Hz
 
-        if not (check or p1.check()):
+        if check and p1.check():
             p1.reset()
             p1.setPWMFreq(60)  # Set frequency to 60 Hz
 
-    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='')
-    def set_leds_off(self):
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b',
+                         sender_keyword='sender_id')
+    def lock(self, sender_id=None):
         """
-        NB, could power down the PWM here
-        """
-        self.set_all_leds([(0, 0, 0)] * self.NUM_LEDS)
+        Block all other API calls with a different sender_id (unique buss name).
 
-    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='a(ddd)', out_signature='')
-    def set_all_leds(self, values):
+        By calling this method, all other processes using the API will be locked out.
+        USE WITH CAUTION!
+
+        It has a safety mechanism that starts a thread to check if the locking
+        process is still alive. So please only call it once per app!
+
+        Returns:
+            lock status - True or False if the API is locked
         """
-        Set all LED values. Note that there is potential for more efficiency
-        because we can transfer 32 bytes at a time over the i2c bus
+        if not self.is_locked and sender_id:
+            self.is_locked = True
+            self.locking_id = sender_id
+            self.locking_pid = self._get_sender_pid(sender_id)
+            self.locking_pid_name = self._get_sender_pid_name(self.locking_pid)
+
+            GObject.timeout_add(self.LOCKING_THREAD_POLL_RATE, self._locking_thread)
+            logger.info('LED Speaker locked by [{}] with PID [{}]'
+                        .format(self.locking_pid_name, self.locking_pid))
+
+        return self.is_locked
+
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b',
+                         sender_keyword='sender_id')
+    def unlock(self, sender_id=None):
+        """
+        Unlocks the API calls to all processes.
+
+        IT IS IMPERATIVE to call this method after locking the API when your app
+        finishes. Please do not rely on the _locking_thread to do this for you!
+
+        Returns:
+            lock status - True or False if the API is locked
+        """
+        if self.is_locked:
+            if sender_id:
+                if sender_id == self.locking_id:
+                    self._do_unlock()
+            else:
+                self._do_unlock()
+
+        return self.is_locked
+
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b')
+    def is_locked(self):
+        """
+        Get the lock status.
+
+        Returns:
+            lock status - True or False if the API is locked
+        """
+        return self.is_locked
+
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b',
+                         sender_keyword='sender_id')
+    def set_leds_off(self, sender_id=None):
+        """
+        Set all LEDs off.
+
+        This method can be locked by other processes.
+
+        Returns:
+            successful - True or False if the operation was successful
         """
 
+        if self.is_locked and sender_id and sender_id != self.locking_id:
+            return False
+
+        return self.set_all_leds([(0, 0, 0)] * self.NUM_LEDS)
+
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='a(ddd)', out_signature='b',
+                         sender_keyword='sender_id')
+    def set_all_leds(self, values, sender_id=None):
+        """
+        Set all LED values.
+
+        This method can be locked by other processes.
+
+        Args:
+            values - list of (r,g,b) tuples where r,g,b are between 0.0 and 1.0
+
+        Returns:
+            successful - True or False if the operation was successful
+        """
+
+        if self.is_locked and sender_id and sender_id != self.locking_id:
+            return False
+
+        # TODO: there is potential for more efficiency because we
+        # can transfer 32 bytes at a time over the i2c bus
         for idx, val in enumerate(values[:self.NUM_LEDS]):
-            self.set_led(idx, val)
+            successful = self.set_led(idx, val)
+            if not successful:
+                return False
 
-    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='i(ddd)', out_signature='')
-    def set_led(self, num, rgb):
+        return True
+
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='i(ddd)', out_signature='b',
+                         sender_keyword='sender_id')
+    def set_led(self, num, rgb, sender_id=None):
         """
-        TODO: description
+        Set an LED value.
+
+        This method can be locked by other processes.
+
+        Args:
+            num - LED index on the board
+            rgb - and (r,g,b) tuple where r,g,b are between 0.0 and 1.0
+
+        Returns:
+            successful - True or False if the operation was successful
         """
+
+        if self.is_locked and sender_id and sender_id != self.locking_id:
+            return False
 
         addr = self.CHIP0_ADDR + (num / self.LEDS_PER_CHIP)
         num = num % self.LEDS_PER_CHIP
@@ -150,40 +312,96 @@ class SpeakerLEDsService(dbus.service.Object):
             dat.extend(self._convert_val_to_pwm(val, 0))
 
         reg = self.LED_REG_BASE + base
-        #  print addr,hex(reg),map(hex,dat)
 
         try:
             self.i2cbus.write_i2c_block_data(addr, reg, dat)
-        except:
+        except IOError:
             # occurs when an animation is running and the user unplugs the LED Speaker
-            pass  # TODO: emit a signal here?
+            # TODO: emit a signal here?
+            return False
+        except AttributeError:
+            # occurs when the i2cmodule was not initialised
+            return False
+        except Exception as e:
+            logger.error('LED Speaker - Something unexpected occurred in set_led - [{}]'
+                         .format(e))
+            return False
 
-    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='a{sv}')
-    def get_data(self):
+        return True
+
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='i')
+    def get_num_leds(self):
         """
-        TODO: description
-        NOTE: The out_signature here indicates the return type as being a
-              dictionary with String keys and Variant values (multiple types).
+        Get the number of LEDs the LED Speaker has.
+
+        Returns:
+            NUM_LEDS - integer number of LEDs
         """
-        return {
-            'NUM_LEDS': self.NUM_LEDS,
-            'QUANTIZE': self.QUANTIZE
-        }
+        return self.NUM_LEDS
+
+    def _start_cpu_monitor_animation(self):
+        """
+        Start the cpu-monitor animation. Only for RPI2.
+        """
+        if not is_model_2_b():
+            return
+
+        run_bg('kano-speakerleds cpu-monitor start {}'
+               .format(self.CPU_MONITOR_POLL_RATE))
+
+    def _stop_cpu_monitor_animation(self):
+        """
+        Stop the cpu-monitor animation. Only for RPI2.
+        """
+        if not is_model_2_b():
+            return
+
+        run_bg('kano-speakerleds cpu-monitor stop')
+
+    def _get_sender_pid(self, sender_id):
+        """
+        Get the PID of the process with the sender_id unique bus name.
+        """
+        sender_pid = None
+
+        if sender_id:
+            dbi = dbus.Interface(
+                dbus.SessionBus().get_object('org.freedesktop.DBus', '/'),
+                'org.freedesktop.DBus'
+            )
+            sender_pid = dbi.GetConnectionUnixProcessID(sender_id)
+
+        return sender_pid
+
+    def _get_sender_pid_name(self, sender_pid):
+        """
+        Get the process name of a given PID. Used for logging (and blaming).
+        """
+        cmd = 'ps -p {} -o cmd='.format(sender_pid)
+        output, _, _ = run_cmd(cmd)
+        return output.strip()
+
+    def _do_unlock(self):
+        """
+        Set the locking flags to unlocked.
+        """
+        self.is_locked = False
+        self.locking_id = None
+        logger.info('LED Speaker API unlocked')
+
+    def _init_i2cbus(self):
+        self.i2cbus = SMBus(1)  # Everything except early 256MB pi'
 
     def _convert_val_to_pwm(self, val, num):
         """
         Convert an intensity value to a PCA9685 PWM on/off register settings.
         """
-
         phase = num * 4096 / 32
 
         val = max(val, 0.0001)
         val = min(val, 1.0)
 
-        if self.QUANTIZE:
-            val = int(val * 4095) & 0x1e00
-        else:
-            val = self._linearize(val, 4096, self.SPEAKER_LED_GAMMA)
+        val = self._linearize(val, 4096, self.SPEAKER_LED_GAMMA)
 
         if val == 0:
             # all off needs a special value: set bit 12
@@ -193,14 +411,7 @@ class SpeakerLEDsService(dbus.service.Object):
             on = phase & 0xfff
             off = int((4096 - val + phase) & 0xfff)
 
-        # print hex(on), hex(off)
-
         return (on & 0xff, on >> 8, off & 0xff, off >> 8)
 
     def _linearize(self, val, steps, gamma):
         return int(math.pow(steps, math.pow(val, gamma))) - 1
-
-    def _logger():
-        # lazy load logging to avoid 1 second startup time
-        import kano.logging
-        return kano.logging.logger
