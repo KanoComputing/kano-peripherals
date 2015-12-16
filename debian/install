@@ -1,3 +1,4 @@
 bin usr/
 kano_peripherals usr/lib/python2.7/dist-packages/
 etc/init.d etc
+etc/dbus-1 etc/dbus-1

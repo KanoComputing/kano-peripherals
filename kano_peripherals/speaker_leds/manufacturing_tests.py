@@ -18,20 +18,17 @@ def manufacturing_test_start(len1, len2, len3):
               'Please run "kano-boards-daemon &" first and try again.'
         return
 
+    _stop()
+
+    speakerleds_iface.setup(False)
     num_leds = speakerleds_iface.get_num_leds()
 
-    while not high_level.interrupted:
-        try:
-            speakerleds_iface.setup(False)
-            _stop()
-            high_level.setup_signal_handler()
+    high_level.setup_signal_handler()
 
-            speakerleds_iface.set_all_leds([(1.0, 0.0, 0.0)] * num_leds)
-            time.sleep(len1)
-            speakerleds_iface.set_all_leds([(0.0, 1.0, 0.0)] * num_leds)
-            time.sleep(len2)
-            speakerleds_iface.set_all_leds([(0.0, 0.0, 1.0)] * num_leds)
-            time.sleep(len3)
-        except IOError:
-            print "Waiting for speaker"
-            time.sleep(1)
+    while not high_level.interrupted:
+        speakerleds_iface.set_all_leds([(1.0, 0.0, 0.0)] * num_leds)
+        time.sleep(len1)
+        speakerleds_iface.set_all_leds([(0.0, 1.0, 0.0)] * num_leds)
+        time.sleep(len2)
+        speakerleds_iface.set_all_leds([(0.0, 0.0, 1.0)] * num_leds)
+        time.sleep(len3)

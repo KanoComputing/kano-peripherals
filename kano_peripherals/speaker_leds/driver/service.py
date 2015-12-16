@@ -15,7 +15,6 @@
 
 
 import os
-import time
 import math
 import dbus
 import dbus.service
@@ -24,7 +23,7 @@ from smbus import SMBus
 from gi.repository import GObject
 
 from kano.logging import logger
-from kano.utils import run_bg, run_cmd, is_model_2_b
+from kano.utils import run_cmd
 
 from kano_peripherals.speaker_leds.driver.pwm_driver import PWM
 from kano_peripherals.paths import BUS_NAME, SPEAKER_LEDS_OBJECT_PATH, SPEAKER_LEDS_IFACE
@@ -52,10 +51,9 @@ class SpeakerLEDsService(dbus.service.Object):
     # polling rates of the threads used in the service
     DETECT_THREAD_POLL_RATE = 1000 * 5      # ms TODO: how big should this be?
     LOCKING_THREAD_POLL_RATE = 1000 * 10    # ms TODO: how big should this be?
-    CPU_MONITOR_POLL_RATE = 5               # s  TODO: how big should this be?
 
     def __init__(self):
-        name = dbus.service.BusName(BUS_NAME, bus=dbus.SessionBus())
+        name = dbus.service.BusName(BUS_NAME, bus=dbus.SystemBus())
         dbus.service.Object.__init__(self, name, SPEAKER_LEDS_OBJECT_PATH)
 
         self.is_plugged = False     # flag for GPIO plugged / unplugged LED Speaker
@@ -82,15 +80,14 @@ class SpeakerLEDsService(dbus.service.Object):
         """
         detected = self.detect()
 
-        # we just detected the LED Speaker being plugged in  TODO: emit a signal here?
-        if detected and not self.is_plugged:
+        # we just detected the LED Speaker being plugged in
+        if detected and not self.is_plugged:  # TODO: emit a signal here?
             self.setup(False)
             self.set_leds_off()  # TODO: emit a signal here to do an anim instead?
-            self._start_cpu_monitor_animation()
 
-        # we just detected the LED Speaker was unplugged  TODO: emit a signal here?
-        if not detected and self.is_plugged:
-            self._stop_cpu_monitor_animation()
+        # we just detected the LED Speaker was unplugged
+        # if not detected and self.is_plugged:  # TODO: emit a signal here?
+        #     pass
 
         self.is_plugged = detected
 
@@ -172,11 +169,11 @@ class SpeakerLEDsService(dbus.service.Object):
         p0 = PWM(self.i2cbus, self.CHIP0_ADDR)
         p1 = PWM(self.i2cbus, self.CHIP0_ADDR + 1)
 
-        if check and p0.check():
+        if not (check or p0.check()):
             p0.reset()
             p0.setPWMFreq(60)  # Set frequency to 60 Hz
 
-        if check and p1.check():
+        if not (check or p1.check()):
             p1.reset()
             p1.setPWMFreq(60)  # Set frequency to 60 Hz
 
@@ -339,25 +336,6 @@ class SpeakerLEDsService(dbus.service.Object):
         """
         return self.NUM_LEDS
 
-    def _start_cpu_monitor_animation(self):
-        """
-        Start the cpu-monitor animation. Only for RPI2.
-        """
-        if not is_model_2_b():
-            return
-
-        run_bg('kano-speakerleds cpu-monitor start {}'
-               .format(self.CPU_MONITOR_POLL_RATE))
-
-    def _stop_cpu_monitor_animation(self):
-        """
-        Stop the cpu-monitor animation. Only for RPI2.
-        """
-        if not is_model_2_b():
-            return
-
-        run_bg('kano-speakerleds cpu-monitor stop')
-
     def _get_sender_pid(self, sender_id):
         """
         Get the PID of the process with the sender_id unique bus name.
@@ -366,7 +344,7 @@ class SpeakerLEDsService(dbus.service.Object):
 
         if sender_id:
             dbi = dbus.Interface(
-                dbus.SessionBus().get_object('org.freedesktop.DBus', '/'),
+                dbus.SystemBus().get_object('org.freedesktop.DBus', '/'),
                 'org.freedesktop.DBus'
             )
             sender_pid = dbi.GetConnectionUnixProcessID(sender_id)

@@ -15,7 +15,7 @@ Usage:
     kano-speakerleds detect
     kano-speakerleds notification (start|stop) [<spec>...]
     kano-speakerleds initflow [<duration>] [<cycles>]
-    kano-speakerleds cpu-monitor (start|stop) [<rate>]
+    kano-speakerleds cpu-monitor (start|stop) [<rate>] [--check]
     kano-speakerleds off
     kano-speakerleds manu_test <len1> <len2> <len3>
     kano-speakerleds -h | --help
@@ -68,7 +68,7 @@ def main(args):
                 print '<rate> argument was not specified or not an int number'
                 exit(1)
 
-            speaker_leds.cpu_monitor_start(update_rate)
+            speaker_leds.cpu_monitor_start(update_rate, args.get('--check'))
 
         elif args['stop']:
             speaker_leds.cpu_monitor_stop()

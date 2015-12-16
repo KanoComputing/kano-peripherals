@@ -41,7 +41,7 @@ def signal_handler(signal, frame):
 def get_speakerleds_interface():
     try:
         return dbus.Interface(
-            dbus.SessionBus().get_object(BUS_NAME, SPEAKER_LEDS_OBJECT_PATH),
+            dbus.SystemBus().get_object(BUS_NAME, SPEAKER_LEDS_OBJECT_PATH),
             SPEAKER_LEDS_IFACE
         )
     except dbus.exceptions.DBusException:

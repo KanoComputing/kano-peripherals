@@ -11,6 +11,7 @@ import json
 import math
 import time
 
+from kano_settings.config_file import get_setting
 from kano.logging import logger
 from kano.utils import run_cmd, run_bg
 
@@ -37,7 +38,7 @@ def notification_start(spec):
 
     # TODO: a better way of doing this would be to have PRIORITY locks, sorry
     if cpu_monitor_running:
-        run_bg('kano-speakerleds cpu-monitor start 5')
+        run_bg('kano-speakerleds cpu-monitor start', unsudo=True)
 
 
 def notification_stop():
@@ -56,10 +57,15 @@ def initflow_pattern_start(duration, cycles):
 
     # TODO: a better way of doing this would be to have PRIORITY locks, sorry
     if cpu_monitor_running:
-        run_bg('kano-speakerleds cpu-monitor start 5')
+        run_bg('kano-speakerleds cpu-monitor start', unsudo=True)
 
 
-def cpu_monitor_start(update_rate):
+def cpu_monitor_start(update_rate, check_settings):
+    if check_settings:
+        cpu_monitor_on = _get_cpu_monitor_setting()
+        if not cpu_monitor_on:
+            return
+
     speakerleds_iface = high_level.get_speakerleds_interface()
     if not speakerleds_iface:
         return
@@ -144,6 +150,10 @@ def _validate_colour(colour):
     return (float(colour[0]), float(colour[1]), float(colour[2]))
 
 
+def _get_cpu_monitor_setting():
+    return get_setting('LED-Speaker-anim')
+
+
 def _get_cpu_led_speeds(speed_scale, num_leds):
     # get the top NUM_LEDS processes by CPU usage - PID, %CPU
     cmd = 'ps -eo pid,pcpu --no-headers --sort -pcpu | head -n {}'.format(num_leds)
@@ -195,4 +205,4 @@ def _stop(option=''):
 def _is_running(option=''):
     cmd = 'pgrep -f "kano-speakerleds {}"'.format(option)
     output, _, _ = run_cmd(cmd)
-    return output != ''
+    return len(output.split()) > 1  # TODO: apparently it finds itself for len(..) == 1
