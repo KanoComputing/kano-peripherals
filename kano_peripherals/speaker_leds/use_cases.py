@@ -13,7 +13,7 @@ import time
 
 from kano_settings.config_file import get_setting
 from kano.logging import logger
-from kano.utils import run_cmd, run_bg
+from kano.utils import run_cmd
 
 from kano_peripherals.speaker_leds.driver import high_level
 from kano_peripherals.speaker_leds.colours import LED_MAGENTA, LED_RED, \
@@ -25,20 +25,16 @@ def notification_start(spec):
     if not speakerleds_iface:
         return
 
-    # TODO: a better way of doing this would be to have PRIORITY locks, sorry
-    cpu_monitor_running = _is_running('cpu-monitor')
-    if cpu_monitor_running:
-        _stop('cpu-monitor')
+    locked = speakerleds_iface.lock(2)
+    if not locked:
+        return
 
     colours1, colours2 = _get_notification_colours(spec, speakerleds_iface.get_num_leds())
-
     vf = high_level.pulse(high_level.constant(colours1),
                           high_level.constant(colours2))
     high_level.animate(vf, 60 * 60, 60 * 60 / 2, update_rate=0.005)
 
-    # TODO: a better way of doing this would be to have PRIORITY locks, sorry
-    if cpu_monitor_running:
-        run_bg('kano-speakerleds cpu-monitor start', unsudo=True)
+    speakerleds_iface.unlock()
 
 
 def notification_stop():
@@ -46,18 +42,19 @@ def notification_stop():
 
 
 def initflow_pattern_start(duration, cycles):
-    # TODO: a better way of doing this would be to have PRIORITY locks, sorry
-    cpu_monitor_running = _is_running('cpu-monitor')
-    if cpu_monitor_running:
-        _stop('cpu-monitor')
+    speakerleds_iface = high_level.get_speakerleds_interface()
+    if not speakerleds_iface:
+        return
+
+    locked = speakerleds_iface.lock(1)
+    if not locked:
+        return
 
     vf = high_level.rotate(high_level.colourWheel, cycles)
     vf2 = high_level.pulse(vf)
     high_level.animate(vf2, duration, 1.0, update_rate=0.005)
 
-    # TODO: a better way of doing this would be to have PRIORITY locks, sorry
-    if cpu_monitor_running:
-        run_bg('kano-speakerleds cpu-monitor start', unsudo=True)
+    speakerleds_iface.unlock()
 
 
 def cpu_monitor_start(update_rate, check_settings):

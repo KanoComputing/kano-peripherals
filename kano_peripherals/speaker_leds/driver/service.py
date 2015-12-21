@@ -8,10 +8,9 @@
 #
 # Using the high_level functions from multiple processes will MERGE animations!
 # It was thought that Kano apps using it would use lock() to get exclusive access.
-# The locking mechanism is a binary semaphore and REQUIRES one to unlock() it afterwards.
+# The locking mechanism is a binary semaphore with priority levels and REQUIRES one to
+# unlock() it afterwards.
 # However, there is a safety mechanism in place in case that fails.
-#
-# A big TODO here is to have locks with priorities.
 
 
 import os
@@ -25,6 +24,7 @@ from gi.repository import GObject
 from kano.logging import logger
 from kano.utils import run_cmd
 
+from kano_peripherals.priority_lock import PriorityLock
 from kano_peripherals.speaker_leds.driver.pwm_driver import PWM
 from kano_peripherals.paths import BUS_NAME, SPEAKER_LEDS_OBJECT_PATH, SPEAKER_LEDS_IFACE
 
@@ -56,11 +56,8 @@ class SpeakerLEDsService(dbus.service.Object):
         name = dbus.service.BusName(BUS_NAME, bus=dbus.SystemBus())
         dbus.service.Object.__init__(self, name, SPEAKER_LEDS_OBJECT_PATH)
 
-        self.is_plugged = False     # flag for GPIO plugged / unplugged LED Speaker
-        self.is_locked = False      # flag for API locking by a process
-        self.locking_id = None      # unique bus name of the locking process
-        self.locking_pid = None     # PID of the locking process
-        self.locking_pid_name = ''  # the name of the process locking the API
+        self.is_plugged = False      # flag for GPIO plugged / unplugged LED Speaker
+        self.locks = PriorityLock()  # locking with priority levels for exclusive access
 
         GObject.threads_init()
         GObject.timeout_add(self.DETECT_THREAD_POLL_RATE, self._detect_thread)
@@ -71,7 +68,7 @@ class SpeakerLEDsService(dbus.service.Object):
 
     def _detect_thread(self):
         """
-        Detect if the LED Speaker is plugged in
+        Detect if the LED Speaker is plugged in.
         This method is run in a separate thread with GObject.
 
         It handles 2 events: onPlugged and onUnplugged. We setup the chip when
@@ -95,27 +92,33 @@ class SpeakerLEDsService(dbus.service.Object):
 
     def _locking_thread(self):
         """
-        Check if the locking process is still alive.
+        Check if the locking processes are still alive.
         This method is run in a separate thread with GObject.
 
-        If the process that locked the API has died, it automatically unlocks it.
+        If any process that locked the API has died, it automatically unlocks
+        its priority level. It keeps executing as long as there are locks.
         """
-        try:
-            os.kill(self.locking_pid, 0)
-        except OSError:
-            # the locking process has died
-            if self.is_locked:
-                logger.warn('[{}] with PID [{}] died and forgot to unlock'
-                            ' the LED Speaker API. Unlocking.'
-                            .format(self.locking_pid_name, self.locking_pid))
-                self._do_unlock()
 
-        except Exception as e:
-            logger.warn('Something unexpected occurred in _locking_thread'
-                        ' - [{}]'.format(e))
+        for priority in xrange(len(self.locks)):
+            lock_data = self.locks.get(priority)
 
-        # when locked, return continues to call this method and stops otherwise
-        return self.is_locked
+            if lock_data is not None:
+                try:
+                    os.kill(lock_data['PID'], 0)
+
+                except OSError:
+                    # the current locking process has died
+                    logger.warn('[{}] with PID [{}]  and priority [{}] died and forgot'
+                                '  to unlock the LED Speaker API. Unlocking.'
+                                .format(lock_data['cmd'], lock_data['PID'], priority))
+                    self.locks.remove_priority(priority)
+
+                except Exception as e:
+                    logger.warn('Something unexpected occurred in _locking_thread'
+                                ' - [{}]'.format(e))
+
+        # while there are still locks active, keep calling this function indefinitely
+        return not self.locks.is_empty()
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b')
     def detect(self):
@@ -177,78 +180,98 @@ class SpeakerLEDsService(dbus.service.Object):
             p1.reset()
             p1.setPWMFreq(60)  # Set frequency to 60 Hz
 
-    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b',
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='i', out_signature='b',
                          sender_keyword='sender_id')
-    def lock(self, sender_id=None):
+    def lock(self, priority, sender_id=None):
         """
-        Block all other API calls with a different sender_id (unique buss name).
+        Block all other API calls with a lower priority.
 
-        By calling this method, all other processes using the API will be locked out.
+        By calling this method, all other processes with a lower priority and a
+        different sender_id (unique bus name) using the API will be locked out.
         USE WITH CAUTION!
+
+        By default it is used by the OS with priority levels 1 and 2.
+        All other apps are free to lock the API with a higher priority.
 
         It has a safety mechanism that starts a thread to check if the locking
         process is still alive. So please only call it once per app!
 
+        Args:
+            priority - number representing the priority level (default is 1 to 10).
+
         Returns:
-            lock status - True or False if the API is locked
+            True or False if the operation was successful.
         """
-        if not self.is_locked and sender_id:
-            self.is_locked = True
-            self.locking_id = sender_id
-            self.locking_pid = self._get_sender_pid(sender_id)
-            self.locking_pid_name = self._get_sender_pid_name(self.locking_pid)
+        successful = False
 
-            GObject.timeout_add(self.LOCKING_THREAD_POLL_RATE, self._locking_thread)
-            logger.info('LED Speaker locked by [{}] with PID [{}]'
-                        .format(self.locking_pid_name, self.locking_pid))
+        if self.locks.get(priority) is None and sender_id:
+            lock_data = self._get_sender_data(sender_id)
 
-        return self.is_locked
+            if self.locks.is_empty():
+                GObject.timeout_add(self.LOCKING_THREAD_POLL_RATE, self._locking_thread)
+
+            self.locks.put(priority, lock_data)
+            successful = True
+
+            logger.info('LED Speaker locked by [{}] with PID [{}] and priority [{}]'
+                        .format(lock_data['cmd'], lock_data['PID'], priority))
+
+        return successful
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b',
                          sender_keyword='sender_id')
     def unlock(self, sender_id=None):
         """
-        Unlocks the API calls to all processes.
+        Unlock the API from the calling sender.
+
+        The lock with a given priority level specific to the sender_id is removed.
+        It does not unlock for other processes nor does it guarantee that the API
+        is fully unlocked afterwards.
 
         IT IS IMPERATIVE to call this method after locking the API when your app
         finishes. Please do not rely on the _locking_thread to do this for you!
 
         Returns:
-            lock status - True or False if the API is locked
+            True or False if the operation was successful.
         """
-        if self.is_locked:
-            if sender_id:
-                if sender_id == self.locking_id:
-                    self._do_unlock()
-            else:
-                self._do_unlock()
+        successful = False
 
-        return self.is_locked
+        if sender_id:
+            lock_data = self._get_sender_data(sender_id)
+            successful = self.locks.remove(lock_data)
 
-    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b')
-    def is_locked(self):
+            if successful:
+                logger.info('LED Speaker unlocked from [{}] with PID [{}]'
+                            .format(lock_data['cmd'], lock_data['PID']))
+
+        return successful
+
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='i', out_signature='b')
+    def is_locked(self, priority):
         """
-        Get the lock status.
+        Check if the given priority level or any above are locked.
+
+        Args:
+            priority - number representing the priority level (default is 1 to 10).
 
         Returns:
-            lock status - True or False if the API is locked
+            True or False if the API is locked on the given priority level.
         """
-        return self.is_locked
+        return self.locks.contains_above(priority)
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b',
                          sender_keyword='sender_id')
     def set_leds_off(self, sender_id=None):
         """
         Set all LEDs off.
-
         This method can be locked by other processes.
 
         Returns:
-            successful - True or False if the operation was successful
+            True or False if the operation was successful.
         """
-
-        if self.is_locked and sender_id and sender_id != self.locking_id:
-            return False
+        if self.locks.get() and sender_id and \
+           self.locks.get()['sender_id'] != sender_id:
+                return False
 
         return self.set_all_leds([(0, 0, 0)] * self.NUM_LEDS)
 
@@ -257,18 +280,17 @@ class SpeakerLEDsService(dbus.service.Object):
     def set_all_leds(self, values, sender_id=None):
         """
         Set all LED values.
-
         This method can be locked by other processes.
 
         Args:
             values - list of (r,g,b) tuples where r,g,b are between 0.0 and 1.0
 
         Returns:
-            successful - True or False if the operation was successful
+            True or False if the operation was successful.
         """
-
-        if self.is_locked and sender_id and sender_id != self.locking_id:
-            return False
+        if self.locks.get() and sender_id and \
+           self.locks.get()['sender_id'] != sender_id:
+                return False
 
         # TODO: there is potential for more efficiency because we
         # can transfer 32 bytes at a time over the i2c bus
@@ -284,7 +306,6 @@ class SpeakerLEDsService(dbus.service.Object):
     def set_led(self, num, rgb, sender_id=None):
         """
         Set an LED value.
-
         This method can be locked by other processes.
 
         Args:
@@ -292,11 +313,11 @@ class SpeakerLEDsService(dbus.service.Object):
             rgb - and (r,g,b) tuple where r,g,b are between 0.0 and 1.0
 
         Returns:
-            successful - True or False if the operation was successful
+            True or False if the operation was successful.
         """
-
-        if self.is_locked and sender_id and sender_id != self.locking_id:
-            return False
+        if self.locks.get() and sender_id and \
+           self.locks.get()['sender_id'] != sender_id:
+                return False
 
         addr = self.CHIP0_ADDR + (num / self.LEDS_PER_CHIP)
         num = num % self.LEDS_PER_CHIP
@@ -305,7 +326,6 @@ class SpeakerLEDsService(dbus.service.Object):
 
         dat = []
         for idx, val in enumerate(rgb):
-            # dat.extend(convertValToPWM(val, num+idx))
             dat.extend(self._convert_val_to_pwm(val, 0))
 
         reg = self.LED_REG_BASE + base
@@ -336,6 +356,20 @@ class SpeakerLEDsService(dbus.service.Object):
         """
         return self.NUM_LEDS
 
+    def _get_sender_data(self, sender_id):
+        """
+        Get sender_id, cmd, and PID from the API caller.
+        """
+        pid = self._get_sender_pid(sender_id)
+        cmd = self._get_sender_cmd(pid)
+
+        lock_data = {
+            'sender_id': sender_id,
+            'PID': pid,
+            'cmd': cmd
+        }
+        return lock_data
+
     def _get_sender_pid(self, sender_id):
         """
         Get the PID of the process with the sender_id unique bus name.
@@ -351,21 +385,13 @@ class SpeakerLEDsService(dbus.service.Object):
 
         return sender_pid
 
-    def _get_sender_pid_name(self, sender_pid):
+    def _get_sender_cmd(self, sender_pid):
         """
         Get the process name of a given PID. Used for logging (and blaming).
         """
         cmd = 'ps -p {} -o cmd='.format(sender_pid)
         output, _, _ = run_cmd(cmd)
         return output.strip()
-
-    def _do_unlock(self):
-        """
-        Set the locking flags to unlocked.
-        """
-        self.is_locked = False
-        self.locking_id = None
-        logger.info('LED Speaker API unlocked')
 
     def _init_i2cbus(self):
         self.i2cbus = SMBus(1)  # Everything except early 256MB pi'
