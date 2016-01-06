@@ -4,7 +4,7 @@
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
 # Low level programming of the LED Speaker chip through a DBus Service.
-# Calls to the API (set_led* methods) are serialised to address OS concurency.
+# Calls to the API (set_led_* methods) are serialised to address OS concurency.
 #
 # Using the high_level functions from multiple processes will MERGE animations!
 # It was thought that Kano apps using it would use lock() to get exclusive access.

@@ -6,6 +6,9 @@
 # A priority locking mechanism.
 
 
+from kano.logging import logger
+
+
 class PriorityLock(object):
     """
     This is a priority locking mechanism.
@@ -130,7 +133,10 @@ class PriorityLock(object):
             else:
                 successful = False
 
-        except IndexError:  # TODO: logger here
+        except IndexError:
+            logger.error('There was an unintentional IndexError in put() with'
+                         ' priority [{}] and locks [{}]. Check the code!'
+                         .format(priority, self.locks))
             successful = False
 
         return successful
@@ -151,19 +157,26 @@ class PriorityLock(object):
         successful = False
         top_priority_removed = False
 
-        for priority in xrange(self.top_priority, 0, -1):
-            if data == self.locks[priority]:
-                self.num_locks -= 1
-                self.locks[priority] = None
-                successful = True
+        try:
+            for priority in xrange(self.top_priority, 0, -1):
+                if data == self.locks[priority]:
+                    self.num_locks -= 1
+                    self.locks[priority] = None
+                    successful = True
 
-                if priority == self.top_priority:
-                    top_priority_removed = True
+                    if priority == self.top_priority:
+                        top_priority_removed = True
 
-            if self.locks[priority] is None and top_priority_removed:
-                self.top_priority -= 1
-            else:
-                top_priority_removed = False
+                if self.locks[priority] is None and top_priority_removed:
+                    self.top_priority -= 1
+                else:
+                    top_priority_removed = False
+
+        except IndexError:
+            logger.error('There was an unintentional IndexError in remove() with'
+                         ' priority [{}] and locks [{}]. Check the code!'
+                         .format(priority, self.locks))
+            successful = False
 
         return successful
 
@@ -191,8 +204,13 @@ class PriorityLock(object):
                         self.top_priority = index
                         if self.locks[index] is not None:
                             break
+            else:
+                successful = False
 
-        except IndexError:  # TODO: logger here
+        except IndexError:
+            logger.error('There was an unintentional IndexError in remove_priority() with'
+                         ' priority [{}] and locks [{}]. Check the code!'
+                         .format(priority, self.locks))
             successful = False
 
         return successful
