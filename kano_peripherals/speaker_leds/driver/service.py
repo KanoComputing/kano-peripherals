@@ -52,12 +52,18 @@ class SpeakerLEDsService(dbus.service.Object):
     DETECT_THREAD_POLL_RATE = 1000 * 5      # ms TODO: how big should this be?
     LOCKING_THREAD_POLL_RATE = 1000 * 10    # ms TODO: how big should this be?
 
+    # the top priority level for an api lock
+    MAX_PRIORITY_LEVEL = 10  # this is public
+
     def __init__(self):
         name = dbus.service.BusName(BUS_NAME, bus=dbus.SystemBus())
         dbus.service.Object.__init__(self, name, SPEAKER_LEDS_OBJECT_PATH)
 
-        self.is_plugged = False      # flag for GPIO plugged / unplugged LED Speaker
-        self.locks = PriorityLock()  # locking with priority levels for exclusive access
+        # locking with priority levels for exclusive access
+        self.locks = PriorityLock(max_priority=self.MAX_PRIORITY_LEVEL)
+
+        # flag for GPIO plugged / unplugged LED Speaker
+        self.is_plugged = False
 
         GObject.threads_init()
         GObject.timeout_add(self.DETECT_THREAD_POLL_RATE, self._detect_thread)
@@ -108,8 +114,8 @@ class SpeakerLEDsService(dbus.service.Object):
 
                 except OSError:
                     # the current locking process has died
-                    logger.warn('[{}] with PID [{}]  and priority [{}] died and forgot'
-                                '  to unlock the LED Speaker API. Unlocking.'
+                    logger.warn('[{}] with PID [{}] and priority [{}] died and forgot'
+                                ' to unlock the LED Speaker API. Unlocking.'
                                 .format(lock_data['cmd'], lock_data['PID'], priority))
                     self.locks.remove_priority(priority)
 
@@ -180,7 +186,7 @@ class SpeakerLEDsService(dbus.service.Object):
             p1.reset()
             p1.setPWMFreq(60)  # Set frequency to 60 Hz
 
-    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='i', out_signature='b',
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='i', out_signature='s',
                          sender_keyword='sender_id')
     def lock(self, priority, sender_id=None):
         """
@@ -202,7 +208,7 @@ class SpeakerLEDsService(dbus.service.Object):
         Returns:
             True or False if the operation was successful.
         """
-        successful = False
+        token = ''
 
         if self.locks.get(priority) is None and sender_id:
             lock_data = self._get_sender_data(sender_id)
@@ -211,12 +217,15 @@ class SpeakerLEDsService(dbus.service.Object):
                 GObject.timeout_add(self.LOCKING_THREAD_POLL_RATE, self._locking_thread)
 
             self.locks.put(priority, lock_data)
-            successful = True
+            token = sender_id  # TODO: is this ok? (security)
 
-            logger.info('LED Speaker locked by [{}] with PID [{}] and priority [{}]'
-                        .format(lock_data['cmd'], lock_data['PID'], priority))
+            # making sure the leds don't "freeze"
+            self.set_leds_off()
 
-        return successful
+            logger.info('LED Speaker locked with priority [{}] by [{}]'
+                        .format(priority, lock_data))
+
+        return token
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b',
                          sender_keyword='sender_id')
@@ -259,6 +268,26 @@ class SpeakerLEDsService(dbus.service.Object):
         """
         return self.locks.contains_above(priority)
 
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='s', out_signature='b',
+                         sender_keyword='sender_id')
+    def set_leds_off_with_token(self, token, sender_id=None):
+        """
+        Set all LEDs off.
+        This method can be used in multiprocess contexts when the parent
+        passes the lock token to its children.
+
+        Args:
+            token - string returned by lock() used to bypass the top lock.
+
+        Returns:
+            True or False if the operation was successful.
+        """
+        if self.locks.get() and sender_id and \
+           self.locks.get()['sender_id'] != token:
+                return False
+
+        return self.set_leds_off(sender_id=token)
+
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b',
                          sender_keyword='sender_id')
     def set_leds_off(self, sender_id=None):
@@ -274,6 +303,27 @@ class SpeakerLEDsService(dbus.service.Object):
                 return False
 
         return self.set_all_leds([(0, 0, 0)] * self.NUM_LEDS)
+
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='a(ddd)s', out_signature='b',
+                         sender_keyword='sender_id')
+    def set_all_leds_with_token(self, values, token, sender_id=None):
+        """
+        Set all LED values.
+        This method can be used in multiprocess contexts when the parent
+        passes the lock token to its children.
+
+        Args:
+            values - list of (r,g,b) tuples where r,g,b are between 0.0 and 1.0
+            token - string returned by lock() used to bypass the top lock.
+
+        Returns:
+            True or False if the operation was successful.
+        """
+        if self.locks.get() and sender_id and \
+           self.locks.get()['sender_id'] != token:
+                return False
+
+        return self.set_all_leds(values, sender_id=token)
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='a(ddd)', out_signature='b',
                          sender_keyword='sender_id')
@@ -300,6 +350,27 @@ class SpeakerLEDsService(dbus.service.Object):
                 return False
 
         return True
+
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='i(ddd)s', out_signature='b',
+                         sender_keyword='sender_id')
+    def set_led_with_token(self, num, rgb, token, sender_id=None):
+        """
+        This method can be used in multiprocess contexts when the parent
+        passes the lock token to its children.
+
+        Args:
+            num - LED index on the board
+            rgb - and (r,g,b) tuple where r,g,b are between 0.0 and 1.0
+            token - string returned by lock() used to bypass the top lock.
+
+        Returns:
+            True or False if the operation was successful.
+        """
+        if self.locks.get() and sender_id and \
+           self.locks.get()['sender_id'] != token:
+                return False
+
+        return self.set_led(num, rgb, sender_id=token)
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='i(ddd)', out_signature='b',
                          sender_keyword='sender_id')
@@ -356,6 +427,16 @@ class SpeakerLEDsService(dbus.service.Object):
         """
         return self.NUM_LEDS
 
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='i')
+    def get_max_lock_priority(self):
+        """
+        Get the maximum priority level to lock with.
+
+        Returns:
+            MAX_PRIORITY_LEVEL - integer number of priority levels
+        """
+        return self.MAX_PRIORITY_LEVEL
+
     def _get_sender_data(self, sender_id):
         """
         Get sender_id, cmd, and PID from the API caller.
@@ -381,7 +462,7 @@ class SpeakerLEDsService(dbus.service.Object):
                 dbus.SystemBus().get_object('org.freedesktop.DBus', '/'),
                 'org.freedesktop.DBus'
             )
-            sender_pid = dbi.GetConnectionUnixProcessID(sender_id)
+            sender_pid = int(dbi.GetConnectionUnixProcessID(sender_id))
 
         return sender_pid
 
