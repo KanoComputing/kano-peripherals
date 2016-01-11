@@ -1,4 +1,7 @@
-bin usr/
-kano_peripherals usr/lib/python2.7/dist-packages/
-etc/init.d etc
-etc/dbus-1 etc/dbus-1
+bin/kano-boards-daemon /usr/bin/
+bin/kano-speakerleds /usr/bin/
+
+kano_peripherals /usr/lib/python2.7/dist-packages/
+
+etc/init.d/kano-peripherals /etc/init.d/
+etc/dbus-1/system-local.conf /etc/dbus-1/
