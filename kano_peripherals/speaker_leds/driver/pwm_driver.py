@@ -1,4 +1,4 @@
-# speaker_leds/low_level.py
+# pwm_driver.py
 #
 # Copyright (c) 2012-2013 Limor Fried, Kevin Townsend and Mikey Sklar for Adafruit Industries.
 # Copyright (C) 2015 Kano Computing Ltd.
@@ -13,11 +13,11 @@
 #  * It configures the PWM chip for autoincrement, to allow block transfers.
 
 
-
 import math
 import time
 
-class PWM:
+
+class PWM(object):
     # Registers/etc.
     __MODE1              = 0x00
     __MODE2              = 0x01
@@ -52,14 +52,14 @@ class PWM:
         #  MODE1  = 0x11 (ALLCALL | SLEEP)
         #  MODE2  = 0x4  (OUTDRV)
         #  PRESCALE  = 0x1E
-        
+
         self.i2cbus.write_byte(0, 0x06)        # SWRST
 
-    def  __init__(self, bus, address, debug = False):
+    def __init__(self, bus, address, debug=False):
         self.address = address
         self.i2cbus = bus
         self.debug = debug
-        self.prescale_value   = 0
+        self.prescale_value = 0
 
     def check(self):
         " Check that mode1 is set to the same value as reset"
@@ -81,7 +81,7 @@ class PWM:
         mode1 = mode1 & ~self.__SLEEP                 # wake up (reset sleep)
         self.i2cbus.write_byte_data(self.address, self.__MODE1, mode1)
         time.sleep(0.005)                             # wait for oscillator
-      
+
     def setPWMFreq(self, freq):
         "Sets the PWM frequency"
         prescaleval = 25000000.0    # 25MHz

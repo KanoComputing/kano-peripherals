@@ -1,3 +1,9 @@
+kano-peripherals (2.3.0-0) unstable; urgency=low
+
+  * Added LED Speaker daemon.
+
+ -- Team Kano <dev@kano.me>  Mon, 11 Jan 2016 12:00:00 +0000
+
 kano-peripherals (2.1-1) unstable; urgency=low
 
   * Initial release.

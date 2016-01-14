@@ -2,75 +2,92 @@
 
 # kano-speakerleds
 #
-# Copyright (C) 2015 Kano Computing Ltd.
-# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU General Public License v2
+# Copyright (C) 2015-2016 Kano Computing Ltd.
+# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
 # Command for interacting with speaker LEDs
 #
 # UNSTABLE for 2.1.1
 
-from kano_peripherals import speaker_leds
+
+"""
+Usage:
+    kano-speakerleds detect
+    kano-speakerleds notification (start|stop) [<spec>...]
+    kano-speakerleds initflow [<duration>] [<cycles>]
+    kano-speakerleds cpu-monitor (start|stop) [<rate>] [--check]
+    kano-speakerleds off
+    kano-speakerleds manu_test <len1> <len2> <len3>
+    kano-speakerleds -h | --help
+
+Options:
+    detect              Return 0 if the speaker LEDS are attached.
+    notification        Start or stop a notification display.
+    initflow            Display the initflow pattern.
+    cpu-monitor         Start or stop a cpu monitor animation.
+    off                 Clear LEDs and stop all animations.
+    -h, --help          Show this message.
+"""
+
 
 from docopt import docopt
 
+from kano_peripherals import speaker_leds
 
-def parse_args(args):
+
+def main(args):
     if args['detect']:
         rc = speaker_leds.detect()
         exit(rc)
-    if args['manu_test']:
+
+    elif args['notification']:
+        if args['start']:
+            speaker_leds.notification_start(args['<spec>'])
+        elif args['stop']:
+            speaker_leds.notification_stop()
+
+    elif args['initflow']:
+        try:
+            duration = float(args.get('<duration>')) if args.get('<duration>') else 2.0
+            cycles = float(args.get('<cycles>')) if args.get('<cycles>') else 4.0
+        except:
+            print '<duration> and <cycles> must be int or float numbers'
+            exit(1)
+
+        speaker_leds.initflow_pattern_start(duration, cycles)
+
+    elif args['cpu-monitor']:
+        '''
+        When kano-boards-daemon first detects the LED Speaker, it sets it up, and
+        starts this animation to run in the background.
+        '''
+        if args['start']:
+            try:
+                update_rate = int(args.get('<rate>')) if args.get('<rate>') else 5
+            except:
+                print '<rate> argument was not specified or not an int number'
+                exit(1)
+
+            speaker_leds.cpu_monitor_start(update_rate, args.get('--check'))
+
+        elif args['stop']:
+            speaker_leds.cpu_monitor_stop()
+
+    elif args['off']:
+        speaker_leds.off()
+
+    elif args['manu_test']:
         try:
             l1 = float(args['<len1>'])
             l2 = float(args['<len2>'])
             l3 = float(args['<len3>'])
         except:
-            print "incorrect arguments to manu_test"
+            print '<len1> <len2> <len3> must be int or float numbers'
             exit(1)
 
         speaker_leds.manufacturing_test_start(l1, l2, l3)
-    if args['notification']:
-        if args['start']:
-
-            speaker_leds.notification_start(args['<spec>'])
-        elif args['stop']:
-            speaker_leds.notification_stop()
-    elif args['initflow']:
-        try:
-            d = args.get('<duration>')
-            c = args.get('<cycles>')
-            if d:
-                d = float(d)
-            else:
-                d = 2.0
-            if c:
-                c = float(c)
-            else:
-                c = 4.0
-        except:
-            print "Duration and Cycles must be numbers"
-
-        speaker_leds.initflow_pattern_start(d,c)
-
-    elif args['off']:
-        speaker_leds.all_off()
 
 
 if __name__ == "__main__":
-    args = docopt("""
-    Usage:
-      kano-speakerleds detect
-      kano-speakerleds notification (start|stop) [<spec>...]
-      kano-speakerleds initflow [<duration>] [<cycles>]
-      kano-speakerleds manu_test <len1> <len2> <len3>
-      kano-speakerleds off
-      kano-speakerleds -h | --help
-
-    Options:
-      detect              Return 0 if the speaker LEDS are attached.
-      notification start  Start a notification display
-      notification start  Stop the notification display
-      initflow on         Display the initflow pattern
-      off                 clear leds
-    """)
-
-    parse_args(args)
+    args = docopt(__doc__)
+    main(args)
