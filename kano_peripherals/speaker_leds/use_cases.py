@@ -23,10 +23,12 @@ from kano_peripherals.speaker_leds.colours import LED_MAGENTA, LED_RED, \
 def notification_start(spec):
     speakerleds_iface = high_level.get_speakerleds_interface()
     if not speakerleds_iface:
+        logger.warn('Could not aquire dbus interface for notification!')
         return
 
     locked = speakerleds_iface.lock(2)
     if not locked:
+        logger.warn('Could not lock dbus interface for notification!')
         return
 
     colours1, colours2 = _get_notification_colours(spec, speakerleds_iface.get_num_leds())
@@ -44,10 +46,12 @@ def notification_stop():
 def initflow_pattern_start(duration, cycles):
     speakerleds_iface = high_level.get_speakerleds_interface()
     if not speakerleds_iface:
+        logger.warn('Could not aquire dbus interface for initflow pattern!')
         return
 
     locked = speakerleds_iface.lock(1)
     if not locked:
+        logger.warn('Could not lock dbus interface for initflow pattern!')
         return
 
     vf = high_level.rotate(high_level.colourWheel, cycles)
