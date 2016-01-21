@@ -5,3 +5,4 @@ kano_peripherals /usr/lib/python2.7/dist-packages/
 
 etc/init.d/kano-peripherals /etc/init.d/
 etc/dbus-1/system-local.conf /etc/dbus-1/
+etc/udev/rules.d /etc/udev/rules.d/
