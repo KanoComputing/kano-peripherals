@@ -69,6 +69,12 @@ def cpu_monitor_start(update_rate, check_settings):
 
     speakerleds_iface = high_level.get_speakerleds_interface()
     if not speakerleds_iface:
+        logger.warn('Could not aquire dbus interface for cpu-monitor!')
+        return
+
+    locked = speakerleds_iface.lock(1)
+    if not locked:
+        logger.warn('Could not lock dbus interface for cpu-monitor!')
         return
 
     num_leds = speakerleds_iface.get_num_leds()
@@ -201,9 +207,3 @@ def _get_cpu_led_speeds(speed_scale, num_leds):
 def _stop(option=''):
     cmd = 'pkill --signal INT -f "kano-speakerleds {}"'.format(option)
     os.system(cmd)
-
-
-def _is_running(option=''):
-    cmd = 'pgrep -f "kano-speakerleds {}"'.format(option)
-    output, _, _ = run_cmd(cmd)
-    return len(output.split()) > 1  # TODO: apparently it finds itself for len(..) == 1

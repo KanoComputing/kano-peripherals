@@ -26,7 +26,7 @@ from kano.utils import run_cmd
 
 from kano_peripherals.priority_lock import PriorityLock
 from kano_peripherals.speaker_leds.driver.pwm_driver import PWM
-from kano_peripherals.paths import BUS_NAME, SPEAKER_LEDS_OBJECT_PATH, SPEAKER_LEDS_IFACE
+from kano_peripherals.paths import SPEAKER_LEDS_OBJECT_PATH, SPEAKER_LEDS_IFACE
 
 
 class SpeakerLEDsService(dbus.service.Object):
@@ -55,9 +55,8 @@ class SpeakerLEDsService(dbus.service.Object):
     # the top priority level for an api lock
     MAX_PRIORITY_LEVEL = 10  # this is public
 
-    def __init__(self):
-        name = dbus.service.BusName(BUS_NAME, bus=dbus.SystemBus())
-        dbus.service.Object.__init__(self, name, SPEAKER_LEDS_OBJECT_PATH)
+    def __init__(self, bus_name):
+        dbus.service.Object.__init__(self, bus_name, SPEAKER_LEDS_OBJECT_PATH)
 
         # locking with priority levels for exclusive access
         self.locks = PriorityLock(max_priority=self.MAX_PRIORITY_LEVEL)
