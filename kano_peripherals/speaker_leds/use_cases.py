@@ -21,12 +21,6 @@ from kano_peripherals.speaker_leds.colours import LED_MAGENTA, LED_RED, \
 
 
 def notification_start(spec):
-    # this is here for safety reason and past issues with the notification-daemon
-    already_running = _is_running('notification')
-    if already_running:
-        logger.warn('A notification animation is already running! Exiting.')
-        return
-
     speakerleds_iface = high_level.get_speakerleds_interface()
     if not speakerleds_iface:
         logger.warn('Could not aquire dbus interface for notification!')
@@ -68,12 +62,6 @@ def initflow_pattern_start(duration, cycles):
 
 
 def cpu_monitor_start(update_rate, check_settings):
-    # TODO: this is required because kano-uixinit does not kill it
-    already_running = _is_running('cpu-monitor')
-    if already_running:
-        logger.warn('A cpu-monitor animation is already running! Exiting.')
-        return
-
     if check_settings:
         cpu_monitor_on = _get_cpu_monitor_setting()
         if not cpu_monitor_on:
@@ -81,6 +69,12 @@ def cpu_monitor_start(update_rate, check_settings):
 
     speakerleds_iface = high_level.get_speakerleds_interface()
     if not speakerleds_iface:
+        logger.warn('Could not aquire dbus interface for cpu-monitor!')
+        return
+
+    locked = speakerleds_iface.lock(1)
+    if not locked:
+        logger.warn('Could not lock dbus interface for cpu-monitor!')
         return
 
     num_leds = speakerleds_iface.get_num_leds()
@@ -213,19 +207,3 @@ def _get_cpu_led_speeds(speed_scale, num_leds):
 def _stop(option=''):
     cmd = 'pkill --signal INT -f "kano-speakerleds {}"'.format(option)
     os.system(cmd)
-
-
-def _is_running(option=''):
-    running_instances = 0
-
-    cmd = 'pgrep -f "kano-speakerleds {}"'.format(option)
-    output, _, _ = run_cmd(cmd)
-
-    for pid in output.strip().split():
-        cmd = 'ps -p {} -o cmd='.format(pid)
-        ps_output, _, _ = run_cmd(cmd)
-        if ps_output.strip():
-            running_instances += 1
-
-    # > 1 because it finds itself
-    return running_instances > 1
