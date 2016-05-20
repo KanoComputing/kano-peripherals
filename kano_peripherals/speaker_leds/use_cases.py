@@ -61,13 +61,13 @@ def initflow_pattern_start(duration, cycles):
     speakerleds_iface.unlock()
 
 
-def cpu_monitor_start(update_rate, check_settings):
+def cpu_monitor_start(update_rate, check_settings, retry_count):
     if check_settings:
         cpu_monitor_on = _get_cpu_monitor_setting()
         if not cpu_monitor_on:
             return
 
-    speakerleds_iface = high_level.get_speakerleds_interface()
+    speakerleds_iface = high_level.get_speakerleds_interface(retry_count=retry_count)
     if not speakerleds_iface:
         logger.warn('Could not aquire dbus interface for cpu-monitor!')
         return
