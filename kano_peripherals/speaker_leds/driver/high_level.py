@@ -38,17 +38,29 @@ def signal_handler(signal, frame):
     speakerleds_iface.unlock()
 
 
-def get_speakerleds_interface():
-    try:
-        return dbus.Interface(
-            dbus.SystemBus().get_object(BUS_NAME, SPEAKER_LEDS_OBJECT_PATH),
-            SPEAKER_LEDS_IFACE
-        )
-    except dbus.exceptions.DBusException:
+def get_speakerleds_interface(retry_count=15):
+
+    dbus_entrypoint=None
+    retrying=False
+
+    for r in range(1, retry_count):
+        try:
+            dbus_entrypoint=dbus.Interface(
+                dbus.SystemBus().get_object(BUS_NAME, SPEAKER_LEDS_OBJECT_PATH),
+                SPEAKER_LEDS_IFACE
+                )
+        except dbus.exceptions.DBusException:
+            retrying=True
+            time.sleep(1)
+        except Exception as e:
+            logger.error('Something unexpected occured in get_speakerleds_interface - [{}]'
+                         .format(e))
+            break
+
+    if not dbus_entrypoint and retrying:
         logger.warn('LED Speaker DBus not found. Is kano-boards-daemon running?')
-    except Exception as e:
-        logger.error('Something unexpected occured in get_speakerleds_interface - [{}]'
-                     .format(e))
+
+    return dbus_entrypoint
 
 
 def constant(values):
