@@ -83,15 +83,20 @@ def cpu_monitor_start(update_rate, check_settings, retry_count):
     duration = update_rate
     cycles = duration / 2
 
+    speakerleds_iface = high_level.get_speakerleds_interface()
+
     while not high_level.interrupted:
-        led_speeds = _get_cpu_led_speeds(0.1, num_leds)
+        if speakerleds_iface.is_speaker_plugged():
+            
+            led_speeds = _get_cpu_led_speeds(0.1, num_leds)
 
-        vf2 = high_level.pulse_each(vf, led_speeds)
-        successful = high_level.animate(vf2, duration, cycles)
+            vf2 = high_level.pulse_each(vf, led_speeds)
+            successful = high_level.animate(vf2, duration, cycles)
 
-        if not successful:
+            if not successful:
+                time.sleep(duration)
+        else:
             time.sleep(duration)
-
 
 def cpu_monitor_stop():
     _stop('cpu-monitor')

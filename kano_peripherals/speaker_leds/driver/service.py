@@ -95,6 +95,10 @@ class SpeakerLEDsService(dbus.service.Object):
 
         return True  # keep calling this method indefinitely
 
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b')
+    def is_speaker_plugged(self):
+        return self.is_plugged
+
     def _locking_thread(self):
         """
         Check if the locking processes are still alive.
