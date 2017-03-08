@@ -11,6 +11,7 @@
 # The deamon uses a system bus under the bus name 'me.kano.boards'
 
 
+import os
 import sys
 import traceback
 import dbus.exceptions
@@ -18,9 +19,18 @@ from dbus.mainloop.glib import DBusGMainLoop
 
 from gi.repository import GObject
 
+if __name__ == '__main__' and __package__ is None:
+    DIR_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if DIR_PATH != '/usr':
+        sys.path.insert(0, DIR_PATH)
+        LOCALE_PATH = os.path.join(DIR_PATH, 'locale')
+    else:
+        LOCALE_PATH = None
+
 from kano.logging import logger
 
 from kano_peripherals.speaker_leds.driver.service import SpeakerLEDsService
+from kano_peripherals.pi_hat.driver.service import PiHatService
 from kano_peripherals.paths import BUS_NAME
 
 
@@ -34,6 +44,7 @@ def main():
 
         # available services, add more here
         speakerleds_service = SpeakerLEDsService(bus_name)
+        pihat_service = PiHatService(bus_name)
 
     except dbus.exceptions.NameExistsException as e:
         logger.warn('Could not reserve the SystemBus name, most likely another instance'
