@@ -86,6 +86,26 @@ class PiHatService(dbus.service.Object):
         """
         return self.lockable_service.get_max_lock_priority()
 
+    # --- LED Programming with Locked API -----------------------------------------------
+
+    @dbus.service.method(PI_HAT_IFACE, in_signature='s', out_signature='b', sender_keyword='sender_id')
+    def set_leds_off_with_token(self, token, sender_id=None):
+        """
+        """
+        return False
+
+    @dbus.service.method(PI_HAT_IFACE, in_signature='a(ddd)s', out_signature='b', sender_keyword='sender_id')
+    def set_all_leds_with_token(self, values, token, sender_id=None):
+        """
+        """
+        return False
+
+    @dbus.service.method(PI_HAT_IFACE, in_signature='i(ddd)s', out_signature='b', sender_keyword='sender_id')
+    def set_led_with_token(self, num, rgb, token, sender_id=None):
+        """
+        """
+        return False
+
     # --- LED Programming API -----------------------------------------------------------
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b', sender_keyword='sender_id')
@@ -115,23 +135,3 @@ class PiHatService(dbus.service.Object):
             NUM_LEDS - integer number of LEDs
         """
         return self.NUM_LEDS
-
-    # --- LED Programming with Locked API -----------------------------------------------
-
-    @dbus.service.method(PI_HAT_IFACE, in_signature='s', out_signature='b', sender_keyword='sender_id')
-    def set_leds_off_with_token(self, token, sender_id=None):
-        """
-        """
-        return False
-
-    @dbus.service.method(PI_HAT_IFACE, in_signature='a(ddd)s', out_signature='b', sender_keyword='sender_id')
-    def set_all_leds_with_token(self, values, token, sender_id=None):
-        """
-        """
-        return False
-
-    @dbus.service.method(PI_HAT_IFACE, in_signature='i(ddd)s', out_signature='b', sender_keyword='sender_id')
-    def set_led_with_token(self, num, rgb, token, sender_id=None):
-        """
-        """
-        return False
