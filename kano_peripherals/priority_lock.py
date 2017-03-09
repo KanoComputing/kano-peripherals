@@ -215,6 +215,15 @@ class PriorityLock(object):
 
         return successful
 
+    def get_max_lock_priority(self):
+        """
+        Get the maximum priority at which a lock could be placed.
+
+        Returns:
+            max_priority - unsigned int number with max level of lock
+        """
+        return self.max_priority
+
     def _standardise_priority(self, priority):
         """ Truncate the priority to fit set interval """
 
