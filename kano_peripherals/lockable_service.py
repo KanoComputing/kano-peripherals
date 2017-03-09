@@ -3,6 +3,7 @@
 # Copyright (C) 2017 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
+# A priority lock service for objects.
 
 
 import os
@@ -19,6 +20,10 @@ from kano_peripherals.priority_lock import PriorityLock
 
 class LockableService(object):
     """
+    A service to enable objects to lock their APIs from different users.
+
+    It uses a PriorityLock object to give the option of multiple users requesting
+    different levels of access.
     """
 
     LOCKING_THREAD_POLL_RATE = 1000 * 10   # ms

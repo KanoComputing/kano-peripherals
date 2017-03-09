@@ -3,16 +3,16 @@
 # Copyright (C) 2017 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
+# Low level programming of the Pi Hat board through a DBus Service.
+#
+# Using the high_level functions from multiple processes will MERGE animations! It was
+# thought that Kano apps using it would use lock() to get exclusive access. The locking
+# mechanism is a binary semaphore with priority levels and REQUIRES one to unlock() it
+# afterwards. However, there is a safety mechanism in place in case that fails.
 
 
-import os
-import math
 import dbus
 import dbus.service
-
-from gi.repository import GObject
-
-from kano.logging import logger
 
 from kano_peripherals.lockable_service import LockableService
 from kano_peripherals.paths import PI_HAT_OBJECT_PATH, PI_HAT_IFACE
@@ -130,39 +130,132 @@ class PiHatService(dbus.service.Object):
     @dbus.service.method(PI_HAT_IFACE, in_signature='s', out_signature='b', sender_keyword='sender_id')
     def set_leds_off_with_token(self, token, sender_id=None):
         """
+        Set all LEDs off.
+        This method can be used in multiprocess contexts when the parent
+        passes the lock token to its children.
+
+        Args:
+            token - string returned by lock() used to bypass the top lock.
+
+        Returns:
+            True or False if the operation was successful.
         """
-        return False
+        if sender_id and \
+           self.locks.get() and \
+           self.locks.get()['sender_id'] != token:
+            return False
+
+        return self.set_leds_off(sender_id=token)
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='a(ddd)s', out_signature='b', sender_keyword='sender_id')
     def set_all_leds_with_token(self, values, token, sender_id=None):
         """
+        Set all LED values.
+        This method can be used in multiprocess contexts when the parent
+        passes the lock token to its children.
+
+        Args:
+            values - list of (r,g,b) tuples where r,g,b are between 0.0 and 1.0
+            token - string returned by lock() used to bypass the top lock.
+
+        Returns:
+            True or False if the operation was successful.
         """
-        return False
+        if sender_id and \
+           self.locks.get() and \
+           self.locks.get()['sender_id'] != token:
+            return False
+
+        return self.set_all_leds(values, sender_id=token)
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='i(ddd)s', out_signature='b', sender_keyword='sender_id')
     def set_led_with_token(self, num, rgb, token, sender_id=None):
         """
+        This method can be used in multiprocess contexts when the parent
+        passes the lock token to its children.
+
+        Args:
+            num - LED index on the board
+            rgb - and (r,g,b) tuple where r,g,b are between 0.0 and 1.0
+            token - string returned by lock() used to bypass the top lock.
+
+        Returns:
+            True or False if the operation was successful.
         """
-        return False
+        if sender_id and \
+           self.locks.get() and \
+           self.locks.get()['sender_id'] != token:
+            return False
+
+        return self.set_led(num, rgb, sender_id=token)
 
     # --- LED Programming API -----------------------------------------------------------
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b', sender_keyword='sender_id')
     def set_leds_off(self, sender_id=None):
         """
+        Set all LEDs off.
+        This method can be locked by other processes.
+
+        Returns:
+            True or False if the operation was successful.
         """
-        return False
+        if sender_id and \
+           self.locks.get() and \
+           self.locks.get()['sender_id'] != sender_id:
+            return False
+
+        return self.set_all_leds([(0, 0, 0)] * self.NUM_LEDS)
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='a(ddd)', out_signature='b', sender_keyword='sender_id')
     def set_all_leds(self, values, sender_id=None):
         """
+        Set all LED values.
+        This method can be locked by other processes.
+
+        Args:
+            values - list of (r,g,b) tuples where r,g,b are between 0.0 and 1.0
+
+        Returns:
+            True or False if the operation was successful.
         """
-        return False
+        if sender_id and \
+           self.locks.get() and \
+           self.locks.get()['sender_id'] != sender_id:
+            return False
+
+        # ---------------------
+        # TODO: TBD
+        # ---------------------
+        for idx, val in enumerate(values[:self.NUM_LEDS]):
+            successful = self.set_led(idx, val)
+            if not successful:
+                return False
+
+        return True
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='i(ddd)', out_signature='b', sender_keyword='sender_id')
     def set_led(self, num, rgb, sender_id=None):
         """
+        Set an LED value.
+        This method can be locked by other processes.
+
+        Args:
+            num - LED index on the board
+            rgb - and (r,g,b) tuple where r,g,b are between 0.0 and 1.0
+
+        Returns:
+            True or False if the operation was successful.
         """
+        if sender_id and \
+           self.locks.get() and \
+           self.locks.get()['sender_id'] != sender_id:
+            return False
+
+        # ---------------------
+        # TODO: Add logic here.
+        # ---------------------
+
         return False
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='i')

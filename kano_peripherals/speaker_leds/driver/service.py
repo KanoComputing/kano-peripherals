@@ -132,6 +132,12 @@ class SpeakerLEDsService(dbus.service.Object):
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b')
     def is_speaker_plugged(self):
+        """
+        Get the current status of the board being plugged in.
+
+        This value is updated by a continuous detection thread, and hence the value
+        returned may be delayed at the of calling it, but is more efficient.
+        """
         return self.is_plugged
 
     def _detect_thread(self):
@@ -244,9 +250,10 @@ class SpeakerLEDsService(dbus.service.Object):
         Returns:
             True or False if the operation was successful.
         """
-        if self.locks.get() and sender_id and \
+        if sender_id and \
+           self.locks.get() and \
            self.locks.get()['sender_id'] != token:
-                return False
+            return False
 
         return self.set_leds_off(sender_id=token)
 
@@ -265,9 +272,10 @@ class SpeakerLEDsService(dbus.service.Object):
         Returns:
             True or False if the operation was successful.
         """
-        if self.locks.get() and sender_id and \
+        if sender_id and \
+           self.locks.get() and \
            self.locks.get()['sender_id'] != token:
-                return False
+            return False
 
         return self.set_all_leds(values, sender_id=token)
 
@@ -286,9 +294,10 @@ class SpeakerLEDsService(dbus.service.Object):
         Returns:
             True or False if the operation was successful.
         """
-        if self.locks.get() and sender_id and \
+        if sender_id and \
+           self.locks.get() and \
            self.locks.get()['sender_id'] != token:
-                return False
+            return False
 
         return self.set_led(num, rgb, sender_id=token)
 
@@ -304,9 +313,10 @@ class SpeakerLEDsService(dbus.service.Object):
         Returns:
             True or False if the operation was successful.
         """
-        if self.locks.get() and sender_id and \
+        if sender_id and \
+           self.locks.get() and \
            self.locks.get()['sender_id'] != sender_id:
-                return False
+            return False
 
         return self.set_all_leds([(0, 0, 0)] * self.NUM_LEDS)
 
