@@ -13,7 +13,6 @@
 # However, there is a safety mechanism in place in case that fails.
 
 
-import os
 import math
 import dbus
 import dbus.service
@@ -22,9 +21,8 @@ from smbus import SMBus
 from gi.repository import GObject
 
 from kano.logging import logger
-from kano.utils import run_cmd
 
-from kano_peripherals.priority_lock import PriorityLock
+from kano_peripherals.lockable_service import LockableService
 from kano_peripherals.speaker_leds.driver.pwm_driver import PWM
 from kano_peripherals.paths import SPEAKER_LEDS_OBJECT_PATH, SPEAKER_LEDS_IFACE
 
@@ -49,17 +47,16 @@ class SpeakerLEDsService(dbus.service.Object):
     SPEAKER_LED_GAMMA = 0.5
 
     # polling rates of the threads used in the service
-    DETECT_THREAD_POLL_RATE = 1000 * 5      # ms TODO: how big should this be?
-    LOCKING_THREAD_POLL_RATE = 1000 * 10    # ms TODO: how big should this be?
+    DETECT_THREAD_POLL_RATE = 1000 * 5      # ms
 
     # the top priority level for an api lock
     MAX_PRIORITY_LEVEL = 10  # this is public
 
     def __init__(self, bus_name):
-        dbus.service.Object.__init__(self, bus_name, SPEAKER_LEDS_OBJECT_PATH)
+        super(SpeakerLEDsService, self).__init__(bus_name, SPEAKER_LEDS_OBJECT_PATH)
 
         # locking with priority levels for exclusive access
-        self.locks = PriorityLock(max_priority=self.MAX_PRIORITY_LEVEL)
+        self.lockable_service = LockableService(max_priority=self.MAX_PRIORITY_LEVEL)
 
         # flag for GPIO plugged / unplugged LED Speaker
         self.is_plugged = False
@@ -70,6 +67,8 @@ class SpeakerLEDsService(dbus.service.Object):
         self._init_i2cbus()
         if not self.i2cbus:
             logger.error('LED Speaker - Failed to load I2C kernel module')
+
+    # --- Board Detection ---------------------------------------------------------------
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='b', out_signature='')
     def setup(self, check):
@@ -162,6 +161,8 @@ class SpeakerLEDsService(dbus.service.Object):
     def _init_i2cbus(self):
         self.i2cbus = SMBus(1)  # Everything except early 256MB pi'
 
+    # --- API Locking -------------------------------------------------------------------
+
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='i', out_signature='s',
                          sender_keyword='sender_id')
     def lock(self, priority, sender_id=None):
@@ -182,26 +183,9 @@ class SpeakerLEDsService(dbus.service.Object):
             priority - number representing the priority level (default is 1 to 10).
 
         Returns:
-            True or False if the operation was successful.
+            token - str with an API token for identification or empty str if unsuccessful
         """
-        token = ''
-
-        if self.locks.get(priority) is None and sender_id:
-            lock_data = self._get_sender_data(sender_id)
-
-            if self.locks.is_empty():
-                GObject.timeout_add(self.LOCKING_THREAD_POLL_RATE, self._locking_thread)
-
-            self.locks.put(priority, lock_data)
-            token = sender_id  # TODO: is this ok? (security)
-
-            # making sure the leds don't "freeze"
-            self.set_leds_off()
-
-            logger.info('LED Speaker locked with priority [{}] by [{}]'
-                        .format(priority, lock_data))
-
-        return token
+        return self.lockable_service.lock(priority, sender_id)
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b',
                          sender_keyword='sender_id')
@@ -219,17 +203,7 @@ class SpeakerLEDsService(dbus.service.Object):
         Returns:
             True or False if the operation was successful.
         """
-        successful = False
-
-        if sender_id:
-            lock_data = self._get_sender_data(sender_id)
-            successful = self.locks.remove(lock_data)
-
-            if successful:
-                logger.info('LED Speaker unlocked from [{}] with PID [{}]'
-                            .format(lock_data['cmd'], lock_data['PID']))
-
-        return successful
+        return self.lockable_service.unlock(sender_id)
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='i', out_signature='b')
     def is_locked(self, priority):
@@ -242,37 +216,7 @@ class SpeakerLEDsService(dbus.service.Object):
         Returns:
             True or False if the API is locked on the given priority level.
         """
-        return self.locks.contains_above(priority)
-
-    def _locking_thread(self):
-        """
-        Check if the locking processes are still alive.
-        This method is run in a separate thread with GObject.
-
-        If any process that locked the API has died, it automatically unlocks
-        its priority level. It keeps executing as long as there are locks.
-        """
-
-        for priority in xrange(len(self.locks)):
-            lock_data = self.locks.get(priority)
-
-            if lock_data is not None:
-                try:
-                    os.kill(lock_data['PID'], 0)
-
-                except OSError:
-                    # the current locking process has died
-                    logger.warn('[{}] with PID [{}] and priority [{}] died and forgot'
-                                ' to unlock the LED Speaker API. Unlocking.'
-                                .format(lock_data['cmd'], lock_data['PID'], priority))
-                    self.locks.remove_priority(priority)
-
-                except Exception as e:
-                    logger.warn('Something unexpected occurred in _locking_thread'
-                                ' - [{}]'.format(e))
-
-        # while there are still locks active, keep calling this function indefinitely
-        return not self.locks.is_empty()
+        return self.lockable_service.is_locked(priority)
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='i')
     def get_max_lock_priority(self):
@@ -280,46 +224,11 @@ class SpeakerLEDsService(dbus.service.Object):
         Get the maximum priority level to lock with.
 
         Returns:
-            MAX_PRIORITY_LEVEL - integer number of priority levels
+            MAX_PRIORITY_LEVEL - unsigned integer number of priority levels
         """
-        return self.MAX_PRIORITY_LEVEL
+        return self.lockable_service.get_max_lock_priority()
 
-    def _get_sender_data(self, sender_id):
-        """
-        Get sender_id, cmd, and PID from the API caller.
-        """
-        pid = self._get_sender_pid(sender_id)
-        cmd = self._get_sender_cmd(pid)
-
-        lock_data = {
-            'sender_id': sender_id,
-            'PID': pid,
-            'cmd': cmd
-        }
-        return lock_data
-
-    def _get_sender_pid(self, sender_id):
-        """
-        Get the PID of the process with the sender_id unique bus name.
-        """
-        sender_pid = None
-
-        if sender_id:
-            dbi = dbus.Interface(
-                dbus.SystemBus().get_object('org.freedesktop.DBus', '/'),
-                'org.freedesktop.DBus'
-            )
-            sender_pid = int(dbi.GetConnectionUnixProcessID(sender_id))
-
-        return sender_pid
-
-    def _get_sender_cmd(self, sender_pid):
-        """
-        Get the process name of a given PID. Used for logging (and blaming).
-        """
-        cmd = 'ps -p {} -o cmd='.format(sender_pid)
-        output, _, _ = run_cmd(cmd)
-        return output.strip()
+    # --- LED Programming with Locked API -----------------------------------------------
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='s', out_signature='b',
                          sender_keyword='sender_id')
@@ -382,6 +291,8 @@ class SpeakerLEDsService(dbus.service.Object):
                 return False
 
         return self.set_led(num, rgb, sender_id=token)
+
+    # --- LED Programming API -----------------------------------------------------------
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b',
                          sender_keyword='sender_id')
