@@ -14,7 +14,7 @@
 Usage:
     kano-speakerleds detect
     kano-speakerleds notification (start|stop) [<spec>...]
-    kano-speakerleds initflow [<duration>] [<cycles>]
+    kano-speakerleds init-flow (start|stop) [<duration>] [<cycles>]
     kano-speakerleds cpu-monitor (start|stop) [<rate>] [--check] [--retry=<seconds>]
     kano-speakerleds off
     kano-speakerleds manu_test <len1> <len2> <len3>
@@ -23,65 +23,105 @@ Usage:
 Options:
     detect              Return 0 if the speaker LEDS are attached.
     notification        Start or stop a notification display.
-    initflow            Display the initflow pattern.
+    init-flow           Display the initflow pattern.
     cpu-monitor         Start or stop a cpu monitor animation.
+    manu_test           Series of LED tests to run in the manufacturing pipeline.
     off                 Clear LEDs and stop all animations.
     -h, --help          Show this message.
 """
 
 
+import os
+import sys
+
 from docopt import docopt
 
-from kano_peripherals import speaker_leds
+if __name__ == '__main__' and __package__ is None:
+    DIR_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if DIR_PATH != '/usr':
+        sys.path.insert(0, DIR_PATH)
+        LOCALE_PATH = os.path.join(DIR_PATH, 'locale')
+    else:
+        LOCALE_PATH = None
+
+from kano_peripherals.speaker_leds.driver.high_level import get_speakerleds_interface
+from kano_peripherals.pi_hat.driver.high_level import get_pihat_interface
+
+from kano_peripherals.wrappers.led_ring.notification import Notification
+from kano_peripherals.wrappers.led_ring.cpu_monitor import CpuMonitor
+from kano_peripherals.wrappers.led_ring.init_flow import InitFlow
+from kano_peripherals.wrappers.led_ring.base_animation import BaseAnimation
+
+from kano_peripherals.return_codes import *
 
 
 def main(args):
     if args['detect']:
-        rc = speaker_leds.detect()
-        exit(rc)
+        iface = get_speakerleds_interface()
+        if iface:
+            return RC_KANO_LED_SPEAKER_DETECTED
+
+        iface = get_pihat_interface()
+        if iface:
+            return RC_KANO_PI_HAT_DETECTED
 
     elif args['notification']:
         if args['start']:
-            speaker_leds.notification_start(args['<spec>'])
+            animation = Notification()
+            animation.connect()
+            animation.setup_signal_handler()
+            return animation.start(args['<spec>'])
+
         elif args['stop']:
-            speaker_leds.notification_stop()
+            animation = Notification()
+            animation.stop()
 
-    elif args['initflow']:
-        try:
-            duration = float(args.get('<duration>')) if args.get('<duration>') else 2.0
-            cycles = float(args.get('<cycles>')) if args.get('<cycles>') else 4.0
-        except:
-            print '<duration> and <cycles> must be int or float numbers'
-            exit(1)
+    elif args['init-flow']:
+        if args['start']:
+            try:
+                duration = float(args.get('<duration>')) if args.get('<duration>') else 2.0
+                cycles = float(args.get('<cycles>')) if args.get('<cycles>') else 4.0
+            except:
+                print '<duration> and <cycles> must be int or float numbers'
+                return RC_INCORRECT_ARGUMENTS
 
-        speaker_leds.initflow_pattern_start(duration, cycles)
+            animation = InitFlow()
+            animation.connect()
+            animation.setup_signal_handler()
+            return animation.start(duration, cycles)
+
+        elif args['stop']:
+            animation = InitFlow()
+            animation.stop()
 
     elif args['cpu-monitor']:
-        '''
-        When kano-boards-daemon first detects the LED Speaker, it sets it up, and
-        starts this animation to run in the background.
-        '''
         if args['start']:
             try:
                 update_rate = int(args.get('<rate>')) if args.get('<rate>') else 5
             except:
                 print '<rate> argument was not specified or not an int number'
-                exit(1)
+                return RC_INCORRECT_ARGUMENTS
 
             try:
                 retry_count = int(args.get('--retry')) if args.get('--retry') else 15
             except:
-                print '<--retry> argument was not specified or not an int number'
-                exit(1)
+                print '[--retry] argument was not specified or not an int number'
+                return RC_INCORRECT_ARGUMENTS
 
-            speaker_leds.cpu_monitor_start(update_rate, args.get('--check'), retry_count)
+            animation = CpuMonitor()
+            animation.connect()
+            animation.setup_signal_handler()
+            return animation.start(update_rate, args.get('--check'), retry_count)
 
         elif args['stop']:
-            speaker_leds.cpu_monitor_stop()
+            animation = CpuMonitor()
+            animation.stop()
 
     elif args['off']:
-        speaker_leds.off()
+        animation = BaseAnimation()
+        animation.stop('')
 
+    ''' TODO
     elif args['manu_test']:
         try:
             l1 = float(args['<len1>'])
@@ -89,11 +129,11 @@ def main(args):
             l3 = float(args['<len3>'])
         except:
             print '<len1> <len2> <len3> must be int or float numbers'
-            exit(1)
+            return RC_INCORRECT_ARGUMENTS
 
         speaker_leds.manufacturing_test_start(l1, l2, l3)
-
+    '''
 
 if __name__ == "__main__":
     args = docopt(__doc__)
-    main(args)
+    sys.exit(main(args) or RC_SUCCESSFUL)

@@ -9,7 +9,7 @@ __email__ = 'dev@kano.me'
 
 
 # exporting methods used by the binary
-
+"""
 from kano_peripherals.speaker_leds.use_cases import \
     detect, off, \
     notification_start, notification_stop, \
@@ -18,3 +18,4 @@ from kano_peripherals.speaker_leds.use_cases import \
 
 from kano_peripherals.speaker_leds.manufacturing_tests import \
     manufacturing_test_start
+"""
