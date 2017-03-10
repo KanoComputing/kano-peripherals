@@ -251,8 +251,8 @@ class SpeakerLEDsService(dbus.service.Object):
             True or False if the operation was successful.
         """
         if sender_id and \
-           self.locks.get() and \
-           self.locks.get()['sender_id'] != token:
+           self.lockable_service.get_lock().get() and \
+           self.lockable_service.get_lock().get()['sender_id'] != token:
             return False
 
         return self.set_leds_off(sender_id=token)
@@ -273,8 +273,8 @@ class SpeakerLEDsService(dbus.service.Object):
             True or False if the operation was successful.
         """
         if sender_id and \
-           self.locks.get() and \
-           self.locks.get()['sender_id'] != token:
+           self.lockable_service.get_lock().get() and \
+           self.lockable_service.get_lock().get()['sender_id'] != token:
             return False
 
         return self.set_all_leds(values, sender_id=token)
@@ -295,8 +295,8 @@ class SpeakerLEDsService(dbus.service.Object):
             True or False if the operation was successful.
         """
         if sender_id and \
-           self.locks.get() and \
-           self.locks.get()['sender_id'] != token:
+           self.lockable_service.get_lock().get() and \
+           self.lockable_service.get_lock().get()['sender_id'] != token:
             return False
 
         return self.set_led(num, rgb, sender_id=token)
@@ -314,8 +314,8 @@ class SpeakerLEDsService(dbus.service.Object):
             True or False if the operation was successful.
         """
         if sender_id and \
-           self.locks.get() and \
-           self.locks.get()['sender_id'] != sender_id:
+           self.lockable_service.get_lock().get() and \
+           self.lockable_service.get_lock().get()['sender_id'] != sender_id:
             return False
 
         return self.set_all_leds([(0, 0, 0)] * self.NUM_LEDS)
@@ -333,8 +333,8 @@ class SpeakerLEDsService(dbus.service.Object):
         Returns:
             True or False if the operation was successful.
         """
-        if self.locks.get() and sender_id and \
-           self.locks.get()['sender_id'] != sender_id:
+        if self.lockable_service.get_lock().get() and sender_id and \
+           self.lockable_service.get_lock().get()['sender_id'] != sender_id:
                 return False
 
         # TODO: there is potential for more efficiency because we
@@ -360,8 +360,8 @@ class SpeakerLEDsService(dbus.service.Object):
         Returns:
             True or False if the operation was successful.
         """
-        if self.locks.get() and sender_id and \
-           self.locks.get()['sender_id'] != sender_id:
+        if self.lockable_service.get_lock().get() and sender_id and \
+           self.lockable_service.get_lock().get()['sender_id'] != sender_id:
                 return False
 
         addr = self.CHIP0_ADDR + (num / self.LEDS_PER_CHIP)

@@ -99,6 +99,15 @@ class LockableService(object):
         """
         return self.locks.get_max_lock_priority()
 
+    def get_lock(self):
+        """
+        Get the lock object used internally to perform the locking.
+
+        Returns:
+            locks - a PriorityLock object
+        """
+        return self.locks
+
     def _locking_thread(self):
         """
         Check if the locking processes are still alive.
