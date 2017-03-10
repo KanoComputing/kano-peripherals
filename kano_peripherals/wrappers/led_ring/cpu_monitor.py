@@ -3,7 +3,13 @@
 # Copyright (C) 2017 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
-# TODO: Description
+# CPU Monitor animation that runs on either the Pi Hat or the LED Speaker.
+#
+# It works by polling the system and grabbing the top 10 most CPU intensive
+# processes and mapping their respective PIDs onto LED ranges, e.g. PIDs
+# between 1 - 1000 to LED 1, 1001 - 2000 to LED 2 and so on. The CPU load
+# is added when mapped to each LED and is directly proportional to the
+# blicking speed on the LED.
 
 
 import sys
@@ -24,6 +30,8 @@ from kano_peripherals.speaker_leds.colours import LED_MAGENTA, LED_RED, \
 
 class CpuMonitor(BaseAnimation):
     """
+    The OS cpu-monitor animation for an LED ring board.
+    This is a wrapper over Pi Hat and LED Speaker.
     """
 
     LOCK_PRIORITY = 1
@@ -33,6 +41,15 @@ class CpuMonitor(BaseAnimation):
 
     def start(self, update_rate, check_settings, retry_count):
         """
+        Start the animation loop.
+
+        Args:
+            update_rate - int polling rate (sec) of cpu load and led index updating
+            check_settings - bool whether to check kano-settings preference
+            retry_count - int number of retries to grab DBus interface
+
+        Returns:
+            rc - int value with return code or None if no errors occured
         """
         if not self.iface and not self.connect():
             logger.error('LED Ring: CpuMonitor: Could not aquire dbus interface!')
@@ -71,6 +88,7 @@ class CpuMonitor(BaseAnimation):
 
     def stop(self):
         """
+        Stop the animation loop and terminate process.
         """
         super(CpuMonitor, self).stop('cpu-monitor')
 

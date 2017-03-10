@@ -3,7 +3,8 @@
 # Copyright (C) 2017 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
-# TODO: Description
+# The base class for an LED ring animation.
+# Subclass this to create more animation routines.
 
 
 import math
@@ -18,6 +19,9 @@ from kano_peripherals.pi_hat.driver.high_level import get_pihat_interface
 
 class BaseAnimation(object):
     """
+    It provides a set of high level animation functions which could be
+    grouped to create different effects. It also abstracts which LED
+    ring board it uses, either LED Speaker or Pi Hat.
     """
 
     def __init__(self):
@@ -26,31 +30,43 @@ class BaseAnimation(object):
         self.iface = None
         self.interrupted = False
 
-    def connect(self):
+    def connect(self, retry_count=5):
         """
+        Grab an interface to either the LED Speaker or Pi Hat
+        depending on which one is plugged in.
+
+        Returns:
+            successful - bool whether was able to connect to a board
         """
-        self.iface = get_speakerleds_interface()
-        if self.iface:
+        self.iface = get_speakerleds_interface(retry_count=retry_count)
+        if self.iface and self.iface.detect():
             return True
 
-        self.iface = get_pihat_interface()
-        if self.iface:
+        self.iface = get_pihat_interface(retry_count=retry_count)
+        if self.iface and self.iface.detect():
             return True
 
         return False
 
     def setup_signal_handler(self):
         """
+        Register a signal hander to listen for SIGINT to gracefully
+        close the animation routine.
         """
         signal.signal(signal.SIGINT, self._signal_handler)
 
     def start(self):
         """
+        Implement the animation loop here.
         """
-        pass  # Implement this!
+        pass
 
     def stop(self, args):
         """
+        Stop the animation loop and terminate process.
+
+        Args:
+            args - the animation id as expected from cmdline args
         """
         run_bg('pkill --signal INT -f "kano-speakerleds {}"'.format(args))
 
