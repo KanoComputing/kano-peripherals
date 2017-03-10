@@ -3,7 +3,7 @@
 # Copyright (C) 2017 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
-# TODO: Description
+# Notification animation that runs on either the Pi Hat or the LED Speaker.
 
 
 import json
@@ -19,6 +19,8 @@ from kano_peripherals.speaker_leds.colours import LED_MAGENTA, LED_RED, LED_BLAC
 
 class Notification(BaseAnimation):
     """
+    The OS notification animation for an LED ring board.
+    This is a wrapper over Pi Hat and LED Speaker.
     """
 
     LOCK_PRIORITY = 2
@@ -28,6 +30,13 @@ class Notification(BaseAnimation):
 
     def start(self, spec):
         """
+        Start the animation loop.
+
+        Args:
+            spec - json wrapped data with LED colours
+
+        Returns:
+            rc - int value with return code or None if no errors occured
         """
         if not self.iface and not self.connect():
             logger.error('LED Ring: Notification: Could not aquire dbus interface!')
@@ -47,6 +56,7 @@ class Notification(BaseAnimation):
 
     def stop(self):
         """
+        Stop the animation loop and terminate process.
         """
         super(Notification, self).stop('notification')
 

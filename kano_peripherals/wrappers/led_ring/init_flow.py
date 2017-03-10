@@ -3,7 +3,8 @@
 # Copyright (C) 2017 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
-# TODO: Description
+# Rainbow animation that runs on either the Pi Hat or the LED Speaker.
+# The pattern is specific to the onboarding flow into the OS.
 
 
 from kano.logging import logger
@@ -18,6 +19,8 @@ from kano_peripherals.speaker_leds.colours import LED_MAGENTA, LED_RED, \
 
 class InitFlow(BaseAnimation):
     """
+    The onboarding animation pattern for an LED ring board.
+    This is a wrapper over Pi Hat and LED Speaker.
     """
 
     LOCK_PRIORITY = 1
@@ -27,6 +30,14 @@ class InitFlow(BaseAnimation):
 
     def start(self, duration, cycles):
         """
+        Start the animation loop.
+
+        Args:
+            duration - int duration in seconds of animation
+            cycles - int number of colour wheel spins during animation
+
+        Returns:
+            rc - int value with return code or None if no errors occured
         """
         if not self.iface and not self.connect():
             logger.error('LED Ring: InitFlow: Could not aquire dbus interface!')
@@ -46,5 +57,6 @@ class InitFlow(BaseAnimation):
 
     def stop(self):
         """
+        Stop the animation loop and terminate process.
         """
         super(InitFlow, self).stop('init-flow')
