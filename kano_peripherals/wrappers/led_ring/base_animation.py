@@ -61,7 +61,8 @@ class BaseAnimation(object):
         """
         pass
 
-    def stop(self, args):
+    @staticmethod
+    def stop(args):
         """
         Stop the animation loop and terminate process.
 

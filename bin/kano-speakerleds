@@ -2,31 +2,28 @@
 
 # kano-speakerleds
 #
-# Copyright (C) 2015-2016 Kano Computing Ltd.
+# Copyright (C) 2015 - 2017 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
-# Command for interacting with speaker LEDs
-#
-# UNSTABLE for 2.1.1
-
+# Command for interacting with LED Speaker and Pi Hat Kano boards.
 
 """
 Usage:
     kano-speakerleds detect
-    kano-speakerleds notification (start|stop) [<spec>...]
-    kano-speakerleds init-flow (start|stop) [<duration>] [<cycles>]
     kano-speakerleds cpu-monitor (start|stop) [<rate>] [--check] [--retry=<seconds>]
+    kano-speakerleds init-flow (start|stop) [<duration>] [<cycles>]
+    kano-speakerleds notification (start|stop) [<spec>...]
     kano-speakerleds off
-    kano-speakerleds manu_test <len1> <len2> <len3>
     kano-speakerleds -h | --help
 
-Options:
+Arguments:
     detect              Return 0 if the speaker LEDS are attached.
-    notification        Start or stop a notification display.
-    init-flow           Display the initflow pattern.
     cpu-monitor         Start or stop a cpu monitor animation.
-    manu_test           Series of LED tests to run in the manufacturing pipeline.
+    init-flow           Display the initflow pattern.
+    notification        Start or stop a notification display.
     off                 Clear LEDs and stop all animations.
+
+Options:
     -h, --help          Show this message.
 """
 
@@ -58,41 +55,12 @@ from kano_peripherals.return_codes import *
 def main(args):
     if args['detect']:
         iface = get_speakerleds_interface()
-        if iface:
+        if iface and iface.detect():
             return RC_KANO_LED_SPEAKER_DETECTED
 
         iface = get_pihat_interface()
-        if iface:
+        if iface and iface.detect():
             return RC_KANO_PI_HAT_DETECTED
-
-    elif args['notification']:
-        if args['start']:
-            animation = Notification()
-            animation.connect()
-            animation.setup_signal_handler()
-            return animation.start(args['<spec>'])
-
-        elif args['stop']:
-            animation = Notification()
-            animation.stop()
-
-    elif args['init-flow']:
-        if args['start']:
-            try:
-                duration = float(args.get('<duration>')) if args.get('<duration>') else 2.0
-                cycles = float(args.get('<cycles>')) if args.get('<cycles>') else 4.0
-            except:
-                print '<duration> and <cycles> must be int or float numbers'
-                return RC_INCORRECT_ARGUMENTS
-
-            animation = InitFlow()
-            animation.connect()
-            animation.setup_signal_handler()
-            return animation.start(duration, cycles)
-
-        elif args['stop']:
-            animation = InitFlow()
-            animation.stop()
 
     elif args['cpu-monitor']:
         if args['start']:
@@ -114,25 +82,37 @@ def main(args):
             return animation.start(update_rate, args.get('--check'), retry_count)
 
         elif args['stop']:
-            animation = CpuMonitor()
-            animation.stop()
+            CpuMonitor.stop()
+
+    elif args['init-flow']:
+        if args['start']:
+            try:
+                duration = float(args.get('<duration>')) if args.get('<duration>') else 2.0
+                cycles = float(args.get('<cycles>')) if args.get('<cycles>') else 4.0
+            except:
+                print '<duration> and <cycles> must be int or float numbers'
+                return RC_INCORRECT_ARGUMENTS
+
+            animation = InitFlow()
+            animation.connect()
+            animation.setup_signal_handler()
+            return animation.start(duration, cycles)
+
+        elif args['stop']:
+            InitFlow.stop()
+
+    elif args['notification']:
+        if args['start']:
+            animation = Notification()
+            animation.connect()
+            animation.setup_signal_handler()
+            return animation.start(args['<spec>'])
+
+        elif args['stop']:
+            Notification().stop()
 
     elif args['off']:
-        animation = BaseAnimation()
-        animation.stop('')
-
-    ''' TODO
-    elif args['manu_test']:
-        try:
-            l1 = float(args['<len1>'])
-            l2 = float(args['<len2>'])
-            l3 = float(args['<len3>'])
-        except:
-            print '<len1> <len2> <len3> must be int or float numbers'
-            return RC_INCORRECT_ARGUMENTS
-
-        speaker_leds.manufacturing_test_start(l1, l2, l3)
-    '''
+        BaseAnimation.stop('')
 
 if __name__ == "__main__":
     args = docopt(__doc__)

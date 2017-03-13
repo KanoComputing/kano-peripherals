@@ -78,7 +78,6 @@ class SpeakerLEDsService(dbus.service.Object):
         Args:
             check - boolean to enable chip mode check
         """
-
         if not self.detect():
             logger.warn('LED Speaker Board was not detected!')
             return
@@ -131,7 +130,7 @@ class SpeakerLEDsService(dbus.service.Object):
                          .format(e))
 
     @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b')
-    def is_speaker_plugged(self):
+    def is_plugged(self):
         """
         Get the current status of the board being plugged in.
 

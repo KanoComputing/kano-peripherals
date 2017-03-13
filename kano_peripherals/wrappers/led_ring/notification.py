@@ -54,11 +54,12 @@ class Notification(BaseAnimation):
         if not self.iface.unlock():
             logger.warn('LED Ring: Notification: Could not unlock dbus interface!')
 
-    def stop(self):
+    @staticmethod
+    def stop():
         """
         Stop the animation loop and terminate process.
         """
-        super(Notification, self).stop('notification')
+        super(Notification, Notification).stop('notification')
 
     def _get_notification_colours(self, spec, num_leds):
         """ """
