@@ -71,7 +71,7 @@ class CpuMonitor(BaseAnimation):
         cycles = duration / 2
 
         while not self.interrupted:
-            if self.iface.is_speaker_plugged():  # TODO: rename method to is_plugged
+            if self.iface.is_plugged():
 
                 led_speeds = self._get_cpu_led_speeds(0.1, num_leds)
 
@@ -86,11 +86,12 @@ class CpuMonitor(BaseAnimation):
         if not self.iface.unlock():
             logger.warn('LED Ring: CpuMonitor: Could not unlock dbus interface!')
 
-    def stop(self):
+    @staticmethod
+    def stop():
         """
         Stop the animation loop and terminate process.
         """
-        super(CpuMonitor, self).stop('cpu-monitor')
+        super(CpuMonitor, CpuMonitor).stop('cpu-monitor')
 
     def _get_cpu_monitor_setting(self):
         return get_setting('LED-Speaker-anim')

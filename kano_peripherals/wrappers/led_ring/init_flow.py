@@ -55,8 +55,9 @@ class InitFlow(BaseAnimation):
         if not self.iface.unlock():
             logger.warn('LED Ring: InitFlow: Could not unlock dbus interface!')
 
-    def stop(self):
+    @staticmethod
+    def stop():
         """
         Stop the animation loop and terminate process.
         """
-        super(InitFlow, self).stop('init-flow')
+        super(InitFlow, InitFlow).stop('init-flow')
