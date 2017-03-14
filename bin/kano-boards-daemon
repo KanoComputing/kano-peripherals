@@ -23,6 +23,10 @@ if __name__ == '__main__' and __package__ is None:
     DIR_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     if DIR_PATH != '/usr':
         sys.path.insert(0, DIR_PATH)
+        KANO_HAT_MODULE = os.path.join(
+            DIR_PATH, 'libs', 'pi_hat', 'library', 'python'
+        )
+        sys.path.insert(1, KANO_HAT_MODULE)
         LOCALE_PATH = os.path.join(DIR_PATH, 'locale')
     else:
         LOCALE_PATH = None
