@@ -16,6 +16,7 @@ import dbus.service
 
 from kano_peripherals.lockable_service import LockableService
 from kano_peripherals.paths import PI_HAT_OBJECT_PATH, PI_HAT_IFACE
+from kano_pi_hat.kano_hat_leds import KanoHatLeds
 
 
 class PiHatService(dbus.service.Object):
@@ -29,7 +30,7 @@ class PiHatService(dbus.service.Object):
     """
 
     # LED Speaker Hardware Spec
-    NUM_LEDS = 10            # this is public
+    NUM_LEDS = KanoHatLeds.LED_COUNT  # this is public
 
     # the top priority level for an api lock
     MAX_PRIORITY_LEVEL = 10  # this is public
@@ -38,27 +39,22 @@ class PiHatService(dbus.service.Object):
         super(PiHatService, self).__init__(bus_name, PI_HAT_OBJECT_PATH)
 
         self.lockable_service = LockableService(max_priority=self.MAX_PRIORITY_LEVEL)
-        self.is_plugged = False
+        self._pi_hat = KanoHatLeds()
+
 
     # --- Board Detection ---------------------------------------------------------------
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='b', out_signature='')
     def setup(self, check):
-        """ TBD
-        """
-        pass
+        self._pi_hat.initialise()
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b')
     def detect(self):
-        """ TBD
-        """
-        return False
+        return self._pi_hat.is_connected()
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b')
     def is_plugged(self):
-        """
-        """
-        return self.is_plugged
+        return self._pi_hat.is_connected()
 
     # --- API Locking -------------------------------------------------------------------
 
@@ -224,15 +220,7 @@ class PiHatService(dbus.service.Object):
            self.lockable_service.get_lock().get()['sender_id'] != sender_id:
             return False
 
-        # ---------------------
-        # TODO: TBD
-        # ---------------------
-        for idx, val in enumerate(values[:self.NUM_LEDS]):
-            successful = self.set_led(idx, val)
-            if not successful:
-                return False
-
-        return True
+        return self._pi_hat.set_all_leds(values)
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='i(ddd)', out_signature='b', sender_keyword='sender_id')
     def set_led(self, num, rgb, sender_id=None):
@@ -247,16 +235,13 @@ class PiHatService(dbus.service.Object):
         Returns:
             True or False if the operation was successful.
         """
+
         if sender_id and \
            self.lockable_service.get_lock().get() and \
            self.lockable_service.get_lock().get()['sender_id'] != sender_id:
             return False
 
-        # ---------------------
-        # TODO: Add logic here.
-        # ---------------------
-
-        return False
+        return self._pi_hat.set_led(num, rgb)
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='i')
     def get_num_leds(self):
