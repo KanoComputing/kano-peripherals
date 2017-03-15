@@ -1,0 +1,14 @@
+#
+# kano-speakerleds
+#
+
+[Unit]
+Description=Kano Speaker LEDs daemon
+IgnoreOnIsolate=true
+Requires=kano-boards.service
+
+[Service]
+ExecStart=/bin/sh -c "/usr/bin/kano-speakerleds cpu-monitor start --check"
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,8 @@
+#
+# The kano-boards-daemon requires root permissions to be able to
+# communicate directly with the PWM pin via DMA.
+#
+# This file requires the permissions to be set to 0440
+#
+
+%sudo   ALL=(root) NOPASSWD: /usr/bin/kano-boards-daemon
