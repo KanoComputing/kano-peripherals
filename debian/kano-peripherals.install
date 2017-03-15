@@ -1,0 +1,9 @@
+bin/kano-boards-daemon usr/bin/
+bin/kano-speakerleds usr/bin/
+
+kano_peripherals usr/lib/python2.7/dist-packages/
+
+systemd/* lib/systemd/
+etc/sudoers.d etc/
+etc/dbus-1/system.d etc/dbus-1/
+etc/udev/rules.d etc/udev/

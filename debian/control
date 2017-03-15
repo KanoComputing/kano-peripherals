@@ -3,11 +3,41 @@ Maintainer: Team Kano <dev@kano.me>
 Section: admin
 Priority: optional
 Standards-Version: 3.9.2
-Build-Depends: debhelper (>= 9)
+Build-Depends:
+    debhelper (>= 9),
+    dh-exec,
+    dh-systemd (>= 1.5),
+    cmake,
+    make,
+    gcc,
+    wiringpi
 
 Package: kano-peripherals
 Architecture: all
-Depends: ${misc:Depends}, python, i2c-tools, python-smbus, python-serial,
-         kano-settings (>= 2.2-2), kano-toolset (>= 2.2.0-2)
+Depends:
+    ${misc:Depends},
+    python,
+    i2c-tools,
+    python-smbus,
+    python-serial,
+    libkano-hat,
+    kano-settings (>= 2.2-2),
+    kano-toolset (>= 2.2.0-2)
+Breaks: kano-desktop (<< 3.10)
 Description: Support for Kano Peripherals
 
+Package: libkano-hat
+Architecture: any
+Depends:
+    ${misc:Depends},
+    python,
+    python-pip,
+    wiringpi
+Description: Library for interacting with the Kano Hat
+
+Package: libkano-hat-dev
+Architecture: any
+Depends:
+    ${misc:Depends},
+    libkano-hat (= ${source:Version})
+Description: Dev version of library for interacting with the Kano Hat

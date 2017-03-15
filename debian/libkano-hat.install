@@ -1,0 +1,4 @@
+#!/usr/bin/dh-exec
+libs/pi_hat/library/python/kano_pi_hat /usr/lib/python2.7/dist-packages/
+
+libs/pi_hat/libkano_hat.so => usr/lib/libkano_hat.so.1.0.0

@@ -1,0 +1,13 @@
+#
+# kano-boards
+#
+
+[Unit]
+Description=Kano Boards Daemon
+IgnoreOnIsolate=true
+
+[Service]
+ExecStart=/usr/bin/sudo /usr/bin/kano-boards-daemon
+
+[Install]
+WantedBy=multi-user.target

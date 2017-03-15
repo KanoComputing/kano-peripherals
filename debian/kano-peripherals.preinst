@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# kano-peripherals.preinst
+#
+# Copyright (C) 2017 Kano Computing Ltd.
+# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPLv2
+#
+
+# From version 3.10.0-0, the systmed unit files were cleaned up and the sudoers
+# entry was migrated from a post-install script to a standard file. For those
+# updating from earlier than these, clean up this mess
+if [ upgrade == "$upgrade" ] \
+        && dpkg --compare-versions "$2" lt 3.10; then
+
+    # Remove sysv kano-peripherals statup entry
+    update-rc.d kano-peripherals remove
+
+    # Clear out original implementation of sudoers file
+    rm /etc/sudoers.d/kano_periph_conf
+fi
