@@ -83,5 +83,6 @@ int register_hat_detached_cb(void cb(void))
 
     add_cb(hat_detached_cbs, cb);
     wiringPiISR(DETECTION_PIN, INT_EDGE_BOTH, &detect_hat_state);
+
     return 0;
 }

@@ -46,5 +46,6 @@ int initialise(void)
 int clean_up(void)
 {
     clean_up_detection();
+    clean_up_power_button();
     release_lock();
 }

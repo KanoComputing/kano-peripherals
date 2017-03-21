@@ -15,6 +15,7 @@
 
 
 int initialise_power_button();
+int clean_up_power_button();
 int register_power_off_cb(void cb(void));
 
 
