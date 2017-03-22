@@ -18,6 +18,7 @@
 
 #include "err.h"
 #include "callbacks.h"
+#include "lock.h"
 #include "power_button.h"
 #include "pins.h"
 

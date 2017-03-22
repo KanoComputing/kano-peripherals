@@ -10,6 +10,7 @@ add_library (
     kano_hat SHARED
     "${PROJECT_SOURCE_DIR}/library/src/kano_hat.c"
     "${PROJECT_SOURCE_DIR}/library/src/callbacks.c"
+    "${PROJECT_SOURCE_DIR}/library/src/lock.c"
     "${PROJECT_SOURCE_DIR}/library/src/power_button.c"
     "${PROJECT_SOURCE_DIR}/library/src/detection.c"
 )

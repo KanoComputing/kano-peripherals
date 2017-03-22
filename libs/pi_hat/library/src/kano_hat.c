@@ -16,15 +16,19 @@
 
 #include "kano_hat.h"
 #include "err.h"
+#include "lock.h"
 #include "power_button.h"
 
 
 int initialise(void)
 {
-    static bool is_initialised = false;
-
-    if (is_initialised)
+    switch (get_lock()) {
+    case E_COULD_NOT_GET_LOCK:
+        perror("Library is already in use");
+        return E_LIBRARY_INITIALISED_ELSEWHERE;
+    case E_ALREADY_INITIALISED:
         return SUCCESS;
+    }
 
 #ifdef USERSPACE
     wiringPiSetupSys();
@@ -35,8 +39,6 @@ int initialise(void)
     initialise_power_button();
     initialise_detection();
 
-    is_initialised = true;
-
     return SUCCESS;
 }
 
@@ -44,4 +46,5 @@ int initialise(void)
 int clean_up(void)
 {
     clean_up_detection();
+    release_lock();
 }
