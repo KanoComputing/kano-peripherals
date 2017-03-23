@@ -31,7 +31,7 @@ Architecture: any
 Depends:
     ${misc:Depends},
     python,
-    python-pip,
+    python-rpi-ws281x,
     wiringpi
 Description: Library for interacting with the Kano Hat
 
