@@ -11,12 +11,17 @@
 # afterwards. However, there is a safety mechanism in place in case that fails.
 
 
+import time
 import dbus
 import dbus.service
+from multiprocessing import Process
+
+from kano.utils import run_bg
 
 from kano_peripherals.lockable_service import LockableService
 from kano_peripherals.paths import PI_HAT_OBJECT_PATH, PI_HAT_IFACE
 from kano_pi_hat.kano_hat_leds import KanoHatLeds
+from kano_pi_hat.kano_hat import KanoHat
 
 
 class PiHatService(dbus.service.Object):
@@ -26,7 +31,7 @@ class PiHatService(dbus.service.Object):
     It exports an object to /me/kano/boards/PiHat and
     its interface to me.kano.boards.PiHat
 
-    Does not require sudo.
+    Requires sudo.
     """
 
     # LED Speaker Hardware Spec
@@ -41,6 +46,8 @@ class PiHatService(dbus.service.Object):
         self.lockable_service = LockableService(max_priority=self.MAX_PRIORITY_LEVEL)
         self._pi_hat = KanoHatLeds()
 
+        p = Process(target=self._power_button_thread)
+        p.start()
 
     # --- Board Detection ---------------------------------------------------------------
 
@@ -252,3 +259,37 @@ class PiHatService(dbus.service.Object):
             NUM_LEDS - integer number of LEDs
         """
         return self.NUM_LEDS
+
+    # --- Power Button Callback ---------------------------------------------------------
+
+    def _power_button_thread(self):
+        """
+        Register the power button callback.
+        This method is run in a separate process with multiprocessing.Process.
+
+        Because the Pi Hat lib sets up a hardware interrupt on the power button
+        GPIO pin, it sets up a callback as the ISR. This callback needs to be on
+        a separate thread from the DBus main loop otherwise it is taken down with
+        a keyboard interrupt signal.
+        """
+
+        def _launch_shutdown_menu():
+            """ Launch the shutdown menu when the power button is pressed. """
+
+            # TODO: The env vars bellow are a workaround the fact that Qt5 apps are
+            #   stacking on top of each other creating multiple mice, events propagating
+            #   below, etc. This hack still leaves a frozen mouse on the screen.
+            run_bg(
+                'systemd-run'
+                ' --setenv=QT_QPA_EGLFS_NO_LIBINPUT=1'
+                ' --setenv=QT_QPA_EVDEV_MOUSE_PARAMETERS=grab=1'
+                ' /usr/bin/shutdown-menu'
+            )
+
+        kano_hat = KanoHat()
+        kano_hat.initialise()
+
+        kano_hat.register_power_off_cb(_launch_shutdown_menu)
+
+        while True:
+            time.sleep(1)

@@ -22,7 +22,8 @@ Depends:
     python-serial,
     libkano-hat,
     kano-settings (>= 2.2-2),
-    kano-toolset (>= 2.2.0-2)
+    kano-toolset (>= 2.2.0-2),
+    poppa
 Breaks: kano-desktop (<< 3.10)
 Description: Support for Kano Peripherals
 
