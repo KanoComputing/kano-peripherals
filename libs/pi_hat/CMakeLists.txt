@@ -19,5 +19,3 @@ target_link_libraries (kano_hat ${WIRING_PI_LIB})
 add_executable (example EXCLUDE_FROM_ALL "${PROJECT_SOURCE_DIR}/examples/c/src/main.c")
 target_link_libraries (example kano_hat)
 target_link_libraries (example ${WIRING_PI_LIB})
-
-add_definitions (-DUSERSPACE)
