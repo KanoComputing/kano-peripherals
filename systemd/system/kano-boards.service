@@ -5,6 +5,7 @@
 [Unit]
 Description=Kano Boards Daemon
 IgnoreOnIsolate=true
+DefaultDependencies=true
 
 [Service]
 ExecStart=/usr/bin/sudo /usr/bin/kano-boards-daemon
