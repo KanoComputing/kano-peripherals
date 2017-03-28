@@ -18,8 +18,27 @@
 #include "pins.h"
 
 
+#define SND_MODULE "snd_bcm2835"
+static bool hat_initialised = false;
+
 callback_list *hat_attached_cbs;
 callback_list *hat_detached_cbs;
+
+
+void hat_init() {
+    if (!hat_initialised) {
+        system("modprobe -r " SND_MODULE);
+        hat_initialised = true;
+    }
+}
+
+
+void hat_destroy() {
+    if (hat_initialised) {
+        system("modprobe -i " SND_MODULE);
+        hat_initialised = false;
+    }
+}
 
 
 int initialise_detection()
@@ -28,6 +47,8 @@ int initialise_detection()
 
     new_cb_list(&hat_attached_cbs);
     new_cb_list(&hat_detached_cbs);
+
+    is_hat_connected();
 
     return SUCCESS;
 }
@@ -45,8 +66,10 @@ int clean_up_detection()
 int is_hat_connected(void)
 {
     if (digitalRead(DETECTION_PIN) == DEFAULT_DETECTION_PIN_VAL) {
+        hat_destroy();
         return false;
     } else {
+        hat_init();
         return true;
     }
 }

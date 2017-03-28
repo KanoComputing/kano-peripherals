@@ -45,14 +45,15 @@ class PiHatService(dbus.service.Object):
 
         self.lockable_service = LockableService(max_priority=self.MAX_PRIORITY_LEVEL)
         self._pi_hat = KanoHatLeds()
+        self.setup()
 
         p = Process(target=self._power_button_thread)
         p.start()
 
     # --- Board Detection ---------------------------------------------------------------
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='b', out_signature='')
-    def setup(self, check):
+    @dbus.service.method(PI_HAT_IFACE, out_signature='')
+    def setup(self):
         self._pi_hat.initialise()
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b')
