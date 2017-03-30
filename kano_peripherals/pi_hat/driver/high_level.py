@@ -17,6 +17,7 @@ from kano_peripherals.paths import BUS_NAME, PI_HAT_OBJECT_PATH, PI_HAT_IFACE
 
 def get_pihat_interface(retry_count=5):
     iface = None
+    successful = False
 
     for retry in range(1, retry_count):
         try:
@@ -24,13 +25,17 @@ def get_pihat_interface(retry_count=5):
                 dbus.SystemBus().get_object(BUS_NAME, PI_HAT_OBJECT_PATH),
                 PI_HAT_IFACE
             )
-        except dbus.exceptions.DBusException:
+            iface.hello_world()
+        except dbus.exceptions.DBusException, dbus.exceptions.UnknownMethodException:
             time.sleep(1)
+            continue
         except Exception as e:
             logger.error('get_pihat_interface: Unexpected error occured:\n'.format(e))
             break
+        successful = True
 
-    if not iface:
+    if not iface or not successful:
         logger.warn('PiHat DBus not found. Is kano-boards-daemon running?')
+        return None
 
     return iface

@@ -261,6 +261,16 @@ class PiHatService(dbus.service.Object):
         """
         return self.NUM_LEDS
 
+    # --- DBus Interface Testing --------------------------------------------------------
+
+    @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b')
+    def hello_world(self):
+        """
+        Use this method to check if the interface to the service
+        can reach this object.
+        """
+        return True
+
     # --- Power Button Callback ---------------------------------------------------------
 
     def _power_button_thread(self):

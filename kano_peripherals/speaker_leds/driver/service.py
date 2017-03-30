@@ -400,6 +400,18 @@ class SpeakerLEDsService(dbus.service.Object):
         """
         return self.NUM_LEDS
 
+    # --- DBus Interface Testing --------------------------------------------------------
+
+    @dbus.service.method(SPEAKER_LEDS_IFACE, in_signature='', out_signature='b')
+    def hello_world(self):
+        """
+        Use this method to check if the interface to the service
+        can reach this object.
+        """
+        return True
+
+    # --- Private Helpers ---------------------------------------------------------------
+
     def _convert_val_to_pwm(self, val, num):
         """
         Convert an intensity value to a PCA9685 PWM on/off register settings.
