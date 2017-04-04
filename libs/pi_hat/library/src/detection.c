@@ -18,7 +18,6 @@
 #include "pins.h"
 
 
-#define SND_MODULE "snd_bcm2835"
 static bool hat_initialised = false;
 
 callback_list *hat_attached_cbs;
@@ -27,7 +26,7 @@ callback_list *hat_detached_cbs;
 
 void hat_init() {
     if (!hat_initialised) {
-        system("modprobe -r " SND_MODULE);
+        system("kano-settings-cli set audio hdmi");
         hat_initialised = true;
     }
 }
@@ -35,7 +34,6 @@ void hat_init() {
 
 void hat_destroy() {
     if (hat_initialised) {
-        system("modprobe -i " SND_MODULE);
         hat_initialised = false;
     }
 }

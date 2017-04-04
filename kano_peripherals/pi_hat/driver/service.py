@@ -16,7 +16,7 @@ import dbus
 import dbus.service
 from multiprocessing import Process
 
-from kano.utils import run_bg
+from kano.utils import run_bg, run_cmd
 
 from kano_peripherals.lockable_service import LockableService
 from kano_peripherals.paths import PI_HAT_OBJECT_PATH, PI_HAT_IFACE
@@ -54,14 +54,30 @@ class PiHatService(dbus.service.Object):
 
     @dbus.service.method(PI_HAT_IFACE, out_signature='')
     def setup(self):
+        """
+        Initialise the PiHat board libraries.
+
+        This is called on startup and does not require to be called manually.
+        """
         self._pi_hat.initialise()
+
+        # The sound module was disabled at boot to avoid PiHat drivers from getting
+        # desync'ed on the PWM pin. We enable it back as soon as possible.
+        run_cmd("modprobe -i snd_bcm2835")
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b')
     def detect(self):
+        """
+        Detect whether the PiHat board is connected.
+
+        Returns:
+            connected - bool whether the board is plugged in or not.
+        """
         return self._pi_hat.is_connected()
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b')
     def is_plugged(self):
+        """ Same as detect. """
         return self._pi_hat.is_connected()
 
     # --- API Locking -------------------------------------------------------------------
