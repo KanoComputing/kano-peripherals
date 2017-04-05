@@ -18,6 +18,7 @@
 #include "pins.h"
 
 
+#define SND_MODULE "snd_bcm2835"
 static bool hat_initialised = false;
 
 callback_list *hat_attached_cbs;
@@ -47,6 +48,10 @@ int initialise_detection()
     new_cb_list(&hat_detached_cbs);
 
     is_hat_connected();
+
+    // The sound module was disabled at boot to avoid PiHat drivers from getting
+    // desync'ed on the PWM pin. We enable it back as soon as possible.
+    system("modprobe -i " SND_MODULE);
 
     return SUCCESS;
 }
