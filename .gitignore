@@ -23,8 +23,6 @@ cscope.po.out
 # Created by https://www.gitignore.io/api/python,c,c++,vim,osx,sublimetext,cmake
 
 ### C ###
-# Prerequisites
-*.d
 
 # Object files
 *.o
