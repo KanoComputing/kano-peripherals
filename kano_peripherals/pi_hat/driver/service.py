@@ -283,6 +283,11 @@ class PiHatService(dbus.service.Object):
         """
         return True
 
+
+    @dbus.service.signal(PI_HAT_IFACE, signature='')
+    def power_button_pressed(self):
+        pass
+
     # --- Power Button Callback ---------------------------------------------------------
 
     def _power_button_thread(self):
@@ -302,6 +307,7 @@ class PiHatService(dbus.service.Object):
             # TODO: The env vars bellow are a workaround the fact that Qt5 apps are
             #   stacking on top of each other creating multiple mice, events propagating
             #   below, etc. This hack still leaves a frozen mouse on the screen.
+            self.power_button_pressed()
             run_bg(
                 'systemd-run'
                 ' --setenv=QT_QPA_EGLFS_NO_LIBINPUT=1'
