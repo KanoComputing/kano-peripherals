@@ -30,7 +30,10 @@ def get_pihat_interface(retry_count=5):
             time.sleep(1)
             continue
         except Exception as e:
-            logger.error('get_pihat_interface: Unexpected error occured:\n'.format(e))
+            logger.error(
+                'get_pihat_interface: Unexpected error occured: {}\n'
+                .format(e)
+            )
             break
         successful = True
 

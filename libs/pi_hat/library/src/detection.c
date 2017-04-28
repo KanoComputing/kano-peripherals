@@ -15,43 +15,23 @@
 
 #include "callbacks.h"
 #include "err.h"
+
 #include "pins.h"
+#include "detection.h"
 
 
-#define SND_MODULE "snd_bcm2835"
-static bool hat_initialised = false;
-
-callback_list *hat_attached_cbs;
-callback_list *hat_detached_cbs;
-
-
-void hat_init() {
-    if (!hat_initialised) {
-        system("kano-settings-cli set audio hdmi");
-        hat_initialised = true;
-    }
-}
-
-
-void hat_destroy() {
-    if (hat_initialised) {
-        hat_initialised = false;
-    }
-}
-
-
+/**
+ * Sets up the detection system.
+ *
+ * Fails with E_HAT_NOT_ATTACHED if the hat isn't present
+ */
 int initialise_detection()
 {
-    pullUpDnControl(DETECTION_PIN, DEFAULT_DETECTION_PIN_STATE);
-
-    new_cb_list(&hat_attached_cbs);
-    new_cb_list(&hat_detached_cbs);
-
-    is_hat_connected();
-
-    // The sound module was disabled at boot to avoid PiHat drivers from getting
-    // desync'ed on the PWM pin. We enable it back as soon as possible.
-    system("modprobe -i " SND_MODULE);
+    pullUpDnControl(DETECTION_PINS.pin_1, PUD_DOWN);
+    pullUpDnControl(DETECTION_PINS.pin_2, PUD_DOWN);
+    pullUpDnControl(DETECTION_PINS.pin_3, PUD_DOWN);
+    pullUpDnControl(DETECTION_PINS.pin_4, PUD_DOWN);
+    pullUpDnControl(DETECTION_PINS.pin_5, PUD_DOWN);
 
     return SUCCESS;
 }
@@ -59,56 +39,27 @@ int initialise_detection()
 
 int clean_up_detection()
 {
-    free_cb_list(&hat_attached_cbs);
-    free_cb_list(&hat_detached_cbs);
-
     return SUCCESS;
 }
 
 
-int is_hat_connected(void)
+union detection_pin_state read_detection_pins(void)
 {
-    if (digitalRead(DETECTION_PIN) == DEFAULT_DETECTION_PIN_VAL) {
-        hat_destroy();
-        return false;
-    } else {
-        hat_init();
-        return true;
-    }
+    union detection_pin_state state;
+
+    state.pin.pin_1 = digitalRead(DETECTION_PINS.pin_1);
+    state.pin.pin_2 = digitalRead(DETECTION_PINS.pin_2);
+    state.pin.pin_3 = digitalRead(DETECTION_PINS.pin_3);
+    state.pin.pin_4 = digitalRead(DETECTION_PINS.pin_4);
+    state.pin.pin_5 = digitalRead(DETECTION_PINS.pin_5);
+
+    print_pins(&state);
+
+    return state;
 }
 
 
-void detect_hat_state(void)
+int is_hat_connected(union detection_pin_state *signature)
 {
-    if (initialise() != SUCCESS)
-        return;
-
-    if (is_hat_connected()) {
-        dispatch_cbs(hat_attached_cbs);
-    } else {
-        dispatch_cbs(hat_detached_cbs);
-    }
-}
-
-
-int register_hat_attached_cb(void cb(void))
-{
-    if (initialise() != SUCCESS)
-        return E_FAIL;
-
-    add_cb(hat_attached_cbs, cb);
-    wiringPiISR(DETECTION_PIN, INT_EDGE_BOTH, &detect_hat_state);
-    return 0;
-}
-
-
-int register_hat_detached_cb(void cb(void))
-{
-    if (initialise() != SUCCESS)
-        return E_FAIL;
-
-    add_cb(hat_detached_cbs, cb);
-    wiringPiISR(DETECTION_PIN, INT_EDGE_BOTH, &detect_hat_state);
-
-    return 0;
+    return read_detection_pins().value == signature->value;
 }

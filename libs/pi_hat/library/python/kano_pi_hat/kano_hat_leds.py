@@ -1,10 +1,10 @@
 #
-#
+# kano_hat_leds.py
 #
 # Copyright (C) 2017 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
-#
+# Adds LED support for the CK2 Lite Hat
 #
 
 

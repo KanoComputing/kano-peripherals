@@ -13,17 +13,16 @@
 #ifndef __PINS_H__
 #define __PINS_H__
 
+
 #include <wiringPi.h>
 
 
 static const int POWER_PIN = 3;  // Phys 5, BCM 3
-static const int LED_PIN = 18;  // Phys 12, BCM 18
-static const int DETECTION_PIN = 26;  // Phys 37, BCM 26
-
 static const int DEFAULT_POWER_PIN_STATE = PUD_DOWN;
-static const int DEFAULT_DETECTION_PIN_STATE = PUD_UP;
 
-static const int DEFAULT_DETECTION_PIN_VAL = 1;
+static const int LOW_BATTERY_PIN = 16;  // Phys 36, BCM 16
+static const int LOW_BATTERY_TRIGGER_VALUE = 1;
 
 
-#endif  // __PINS_H__
+
+#endif  // __CK2_PRO_PINS_H__

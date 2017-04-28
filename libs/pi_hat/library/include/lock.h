@@ -13,7 +13,7 @@
 #ifndef __LOCK_H__
 #define __LOCK_H__
 
-static const char *lock_file = "/var/run/lock/kano_hat.lock";
+static const char *lock_file = "/var/run/lock/kano_boards.lock";
 
 int get_lock();
 int release_lock();

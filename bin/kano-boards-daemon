@@ -27,6 +27,11 @@ if __name__ == '__main__' and __package__ is None:
             DIR_PATH, 'libs', 'pi_hat', 'library', 'python'
         )
         sys.path.insert(1, KANO_HAT_MODULE)
+
+        CK2_PRO_HAT_MODULE = os.path.join(
+            DIR_PATH, 'libs', 'ck2_pro_hat', 'library', 'python'
+        )
+        sys.path.insert(1, CK2_PRO_HAT_MODULE)
         LOCALE_PATH = os.path.join(DIR_PATH, 'locale')
     else:
         LOCALE_PATH = None
@@ -35,6 +40,7 @@ from kano.logging import logger
 
 from kano_peripherals.speaker_leds.driver.service import SpeakerLEDsService
 from kano_peripherals.pi_hat.driver.service import PiHatService
+from kano_peripherals.ck2_pro_hat.driver.service import CK2ProHatService
 from kano_peripherals.paths import BUS_NAME
 
 
@@ -49,6 +55,7 @@ def main():
         # available services, add more here
         speakerleds_service = SpeakerLEDsService(bus_name)
         pihat_service = PiHatService(bus_name)
+        ck2prohat_service = CK2ProHatService(bus_name)
 
     except dbus.exceptions.NameExistsException as e:
         logger.warn('Could not reserve the SystemBus name, most likely another instance'
