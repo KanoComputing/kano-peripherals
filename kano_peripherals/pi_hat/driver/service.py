@@ -14,7 +14,7 @@
 import time
 import dbus
 import dbus.service
-from multiprocessing import Process
+from multiprocessing import Process, Value
 
 from kano.utils import run_bg
 
@@ -47,7 +47,8 @@ class PiHatService(dbus.service.Object):
         self._pi_hat = KanoHatLeds()
         self.setup()
 
-        p = Process(target=self._power_button_thread)
+        self.is_power_button_enabled = Value('b', False)
+        p = Process(target=self._power_button_thread, args=(self.is_power_button_enabled,))
         p.start()
 
     # --- Board Detection ---------------------------------------------------------------
@@ -283,14 +284,24 @@ class PiHatService(dbus.service.Object):
         """
         return True
 
+    # --- Power Button ------------------------------------------------------------------
+
+    @dbus.service.method(PI_HAT_IFACE, in_signature='b', out_signature='')
+    def set_power_button_enabled(self, enabled):
+        """
+        Enable or disable the power button from performing
+        and signaling any actions.
+
+        Args:
+            enabled - boolean whether the button should register presses or not
+        """
+        self.is_power_button_enabled.value = enabled
 
     @dbus.service.signal(PI_HAT_IFACE, signature='')
     def power_button_pressed(self):
         pass
 
-    # --- Power Button Callback ---------------------------------------------------------
-
-    def _power_button_thread(self):
+    def _power_button_thread(self, is_enabled):
         """
         Register the power button callback.
         This method is run in a separate process with multiprocessing.Process.
@@ -303,6 +314,9 @@ class PiHatService(dbus.service.Object):
 
         def _launch_shutdown_menu():
             """ Launch the shutdown menu when the power button is pressed. """
+
+            if not is_enabled.value:
+                return
 
             # TODO: The env vars bellow are a workaround the fact that Qt5 apps are
             #   stacking on top of each other creating multiple mice, events propagating
