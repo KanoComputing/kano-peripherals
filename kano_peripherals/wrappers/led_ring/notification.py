@@ -38,21 +38,22 @@ class Notification(BaseAnimation):
         Returns:
             rc - int value with return code or None if no errors occured
         """
-        if not self.iface and not self.connect():
+
+        # Connect to the DBus interface of a board with an LED ring.
+        if not self.connect():
             logger.error('LED Ring: Notification: Could not aquire dbus interface!')
             return RC_FAILED_ANIM_GET_DBUS
 
+        # Lock the API so anything below doesn't override our calls.
         locked = self.iface.lock(self.LOCK_PRIORITY)
         if not locked:
             logger.error('LED Ring: Notification: Could not lock dbus interface!')
             return RC_FAILED_LOCKING_API
 
+        # Setup the animation parameters and run the loop.
         colours1, colours2 = self._get_notification_colours(spec, self.iface.get_num_leds())
         vf = self.pulse(self.constant(colours1), self.constant(colours2))
         self.animate(vf, 60 * 60, 60 * 60 / 2, update_rate=0.005)
-
-        if not self.iface.unlock():
-            logger.warn('LED Ring: Notification: Could not unlock dbus interface!')
 
     @staticmethod
     def stop():

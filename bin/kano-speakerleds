@@ -77,8 +77,6 @@ def main(args):
                 return RC_INCORRECT_ARGUMENTS
 
             animation = CpuMonitor()
-            animation.connect()
-            animation.setup_signal_handler()
             return animation.start(update_rate, args.get('--check'), retry_count)
 
         elif args['stop']:
@@ -94,8 +92,6 @@ def main(args):
                 return RC_INCORRECT_ARGUMENTS
 
             animation = InitFlow()
-            animation.connect()
-            animation.setup_signal_handler()
             return animation.start(duration, cycles)
 
         elif args['stop']:
@@ -104,8 +100,6 @@ def main(args):
     elif args['notification']:
         if args['start']:
             animation = Notification()
-            animation.connect()
-            animation.setup_signal_handler()
             return animation.start(args['<spec>'])
 
         elif args['stop']:

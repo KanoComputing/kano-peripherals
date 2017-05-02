@@ -39,21 +39,22 @@ class InitFlow(BaseAnimation):
         Returns:
             rc - int value with return code or None if no errors occured
         """
-        if not self.iface and not self.connect():
+
+        # Connect to the DBus interface of a board with an LED ring.
+        if not self.connect():
             logger.error('LED Ring: InitFlow: Could not aquire dbus interface!')
             return RC_FAILED_ANIM_GET_DBUS
 
+        # Lock the API so anything below doesn't override our calls.
         locked = self.iface.lock(self.LOCK_PRIORITY)
         if not locked:
             logger.error('LED Ring: InitFlow: Could not lock dbus interface!')
             return RC_FAILED_LOCKING_API
 
+        # Setup the animation parameters and run the loop.
         vf = self.rotate(self.colour_wheel, cycles)
         vf2 = self.pulse(vf)
         self.animate(vf2, duration, 1.0, update_rate=0.005)
-
-        if not self.iface.unlock():
-            logger.warn('LED Ring: InitFlow: Could not unlock dbus interface!')
 
     @staticmethod
     def stop():

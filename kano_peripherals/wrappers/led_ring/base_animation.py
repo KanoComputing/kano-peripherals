@@ -30,6 +30,8 @@ class BaseAnimation(object):
         self.iface = None
         self.interrupted = False
 
+        self.setup_signal_handler()
+
     def connect(self, retry_count=5):
         """
         Grab an interface to either the LED Speaker or Pi Hat
@@ -211,11 +213,13 @@ class BaseAnimation(object):
             time.sleep(update_rate)
             now = time.time()  # seconds since the epoch as float
 
-        self.iface.set_leds_off()
+        if self.iface:
+            self.iface.set_leds_off()
 
         return successful
 
-    def _signal_handler(self, signal, frame):
+    def _signal_handler(self, signum, frame):
         self.interrupted = True
-        self.iface.set_leds_off()
-        self.iface.unlock()
+        if self.iface:
+            self.iface.set_leds_off()
+            self.iface.unlock()
