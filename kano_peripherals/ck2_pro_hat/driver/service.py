@@ -14,9 +14,13 @@
 import time
 import dbus
 import dbus.service
-from multiprocessing import Process
+from multiprocessing import Process, Value
 
 from kano.utils import run_bg
+'''
+from kano.notifications import display_generic_notification, \
+    close_current_notification
+'''
 
 from kano_peripherals.lockable_service import LockableService
 from kano_peripherals.paths import CK2_PRO_HAT_OBJECT_PATH, CK2_PRO_HAT_IFACE
@@ -40,7 +44,11 @@ class CK2ProHatService(dbus.service.Object):
         self._pi_hat = CK2ProHat()
         self.setup()
 
-        p = Process(target=self._interrupt_thread)
+        self.is_power_button_enabled = Value('b', False)
+        p = Process(
+            target=self._interrupt_thread,
+            args=(self.is_power_button_enabled,)
+        )
         p.start()
 
     # --- Board Detection ---------------------------------------------------------------
@@ -131,13 +139,25 @@ class CK2ProHatService(dbus.service.Object):
 
     # --- Power Button ------------------------------------------------------------------
 
+
+    @dbus.service.method(CK2_PRO_HAT_IFACE, in_signature='b', out_signature='')
+    def set_power_button_enabled(self, enabled):
+        """
+        Enable or disable the power button from performing
+        and signaling any actions.
+
+        Args:
+            enabled - boolean whether the button should register presses or not
+        """
+        self.is_power_button_enabled.value = enabled
+
     @dbus.service.signal(CK2_PRO_HAT_IFACE, signature='')
     def power_button_pressed(self):
         pass
 
     # --- Callbacks Thread --------------------------------------------------------------
 
-    def _interrupt_thread(self):
+    def _interrupt_thread(self, is_enabled):
         """
         Register the power button callback.
         This method is run in a separate process with multiprocessing.Process.
@@ -150,6 +170,9 @@ class CK2ProHatService(dbus.service.Object):
 
         def _launch_shutdown_menu():
             """ Launch the shutdown menu when the power button is pressed. """
+
+            if not is_enabled.value:
+                return
 
             # TODO: The env vars bellow are a workaround the fact that Qt5 apps are
             #   stacking on top of each other creating multiple mice, events propagating
