@@ -11,10 +11,17 @@
 
 
 #include <stdbool.h>
+#include <signal.h>
+#include <unistd.h>
 
 #include "err.h"
 #include "callbacks.h"
 #include "battery.h"
+
+
+// Tweak these values to clean battery state input
+const unsigned int debounce_delay = 10000;  // microseconds
+const unsigned int counter_threshold = 5;
 
 
 callback_list *battery_level_changed_cbs;
@@ -42,8 +49,29 @@ bool is_battery_low(void)
 
 void battery_level_changed(void)
 {
-    // TODO: Debounce input
-    dispatch_cbs(battery_level_changed_cbs);
+    static bool prev_state = false;
+    static unsigned int counter = 0;
+    signal(SIGALRM, battery_level_changed);
+
+    bool current_state = is_battery_low();
+
+    if (current_state != prev_state) {
+        counter = 0;
+        prev_state = current_state;
+        ualarm(debounce_delay, 0);
+
+        return;
+    }
+
+    counter++;
+
+    if (counter >= counter_threshold) {
+        counter = 0;
+        alarm(0);
+        dispatch_cbs(battery_level_changed_cbs);
+    } else {
+        ualarm(debounce_delay, 0);
+    }
 }
 
 
