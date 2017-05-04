@@ -2,6 +2,7 @@ bin/kano-boards-daemon usr/bin/
 bin/kano-speakerleds usr/bin/
 
 kano_peripherals usr/lib/python2.7/dist-packages/
+assets usr/share/kano-peripherals/
 
 systemd/* lib/systemd/
 etc/sudoers.d etc/

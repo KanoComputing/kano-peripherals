@@ -15,7 +15,7 @@ import os
 import sys
 import traceback
 import dbus.exceptions
-from dbus.mainloop.glib import DBusGMainLoop
+from dbus.mainloop.glib import DBusGMainLoop, threads_init
 
 from gi.repository import GObject
 
@@ -47,6 +47,7 @@ from kano_peripherals.paths import BUS_NAME
 def main():
     GObject.threads_init()
     DBusGMainLoop(set_as_default=True)
+    threads_init()
 
     try:
         # reserving the bus name, other instances of kano-boards-daemon will fail

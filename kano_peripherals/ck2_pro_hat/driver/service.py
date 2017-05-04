@@ -14,13 +14,13 @@
 import time
 import dbus
 import dbus.service
-from multiprocessing import Process, Value
+from multiprocessing import Process, Value, Event
+from threading import Thread
+from gi.repository import GLib
 
 from kano.utils import run_bg
-'''
 from kano.notifications import display_generic_notification, \
     close_current_notification
-'''
 
 from kano_peripherals.lockable_service import LockableService
 from kano_peripherals.paths import CK2_PRO_HAT_OBJECT_PATH, CK2_PRO_HAT_IFACE
@@ -45,11 +45,20 @@ class CK2ProHatService(dbus.service.Object):
         self.setup()
 
         self.is_power_button_enabled = Value('b', False)
+        self._notif_trigger = Event()
+
         p = Process(
             target=self._interrupt_thread,
-            args=(self.is_power_button_enabled,)
+            args=(self.is_power_button_enabled, self._notif_trigger)
         )
         p.start()
+
+        battery_notif_thr = Thread(
+            target=self._create_notif_thr,
+            args=(self._notif_trigger,)
+        )
+        battery_notif_thr.daemon = True
+        battery_notif_thr.start()
 
     # --- Board Detection ---------------------------------------------------------------
 
@@ -136,6 +145,49 @@ class CK2ProHatService(dbus.service.Object):
         """
         pass
 
+    def _create_notif_thr(self, notif_trigger):
+        '''
+        A simple thread which queues a notification in the main thread whenever
+        the interrupt multiprocessing.Process triggers one.
+
+        Required because the `Process` can't queue things directly.
+        '''
+        while True:
+            if not notif_trigger.wait(1):
+                continue
+
+            level = self.get_battery_level()
+            GLib.idle_add(
+                self.create_notif,
+                level,
+                priority=GLib.PRIORITY_HIGH_IDLE
+            )
+
+            notif_trigger.clear()
+
+
+    def create_notif(self, level):
+        '''
+        Triggers a notification to be opened or removed based on the battery
+        state
+
+        NB: Must be called from the main thread as the notification has a
+            timeout which fails if called from a threading.Thread or
+            multiprocessing.Process, as such, it should be `idle_add`ed from
+            `Thread`s and requires a more complicated procedure from
+            `Process`es.
+        '''
+        if level < 20:
+            display_generic_notification(
+                'Plug In Your Kit!',
+                'Your kit has a low battery and will turn off soon!',
+                image='/usr/share/kano-peripherals/assets/low_battery_alert.png',
+                sound='/usr/share/kano-media/sounds/kano_error.wav',
+                urgency='critical'
+            )
+        else:
+            close_current_notification()
+
 
     # --- Power Button ------------------------------------------------------------------
 
@@ -157,7 +209,7 @@ class CK2ProHatService(dbus.service.Object):
 
     # --- Callbacks Thread --------------------------------------------------------------
 
-    def _interrupt_thread(self, is_enabled):
+    def _interrupt_thread(self, is_enabled, notif_trigger):
         """
         Register the power button callback.
         This method is run in a separate process with multiprocessing.Process.
@@ -189,12 +241,15 @@ class CK2ProHatService(dbus.service.Object):
         kano_hat.initialise()
 
         def battery_changed_cb():
+            '''
+            Emits a DBus signal to alert others and signals the notification
+            thread to do its thing.
+            '''
             self.power_level_changed(self.get_battery_level())
+            notif_trigger.set()
 
 
         kano_hat.register_power_off_cb(_launch_shutdown_menu)
-        # kano_hat.register_low_battery_cb(battery_low_cb)
-        # kano_hat.register_battery_charged_cb(battery_charged_cb)
         kano_hat.register_battery_level_changed_cb(battery_changed_cb)
 
         while True:
