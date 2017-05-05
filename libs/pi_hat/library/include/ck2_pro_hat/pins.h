@@ -24,9 +24,10 @@
  *
  * Raised pins:
  *     Phys 18, BCM 24, Detection Pin 3
+ *
+ * All other pins actively lowered
  */
 static union detection_pin_state CK2_PRO_DETECTION_SIGNATURE = {
-    // .value = 0b00100
     .pin = {
         .pin_1 = 0,
         .pin_2 = 0,

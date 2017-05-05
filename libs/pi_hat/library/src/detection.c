@@ -31,7 +31,8 @@ int initialise_detection()
     pullUpDnControl(DETECTION_PINS.pin_2, PUD_DOWN);
     pullUpDnControl(DETECTION_PINS.pin_3, PUD_DOWN);
     pullUpDnControl(DETECTION_PINS.pin_4, PUD_DOWN);
-    pullUpDnControl(DETECTION_PINS.pin_5, PUD_DOWN);
+    // Quirky pin which opposes the expectation
+    pullUpDnControl(DETECTION_PINS.pin_5, PUD_UP);
 
     return SUCCESS;
 }

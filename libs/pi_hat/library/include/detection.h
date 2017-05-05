@@ -37,12 +37,22 @@ union detection_pin_state {
 };
 
 
+/**
+ * Selection of pins to use for the detection
+ * NB: Pin 5 defaults to HIGH, while the other pins default LOW. This means that
+ *     the signature for no hat attached is 0b00001 (not 0b00000)
+ *
+ */
 static const struct detection_pins DETECTION_PINS = {
     .pin_1 = 22,  // Physical 15, BCM 22
     .pin_2 = 23,  // Physical 16, BCM 23
     .pin_3 = 24,  // Physical 18, BCM 24
-    .pin_4 = 26,  // Physical 37, BCM 26
-    .pin_5 = 27,  // Physical 13, BCM 27
+    .pin_4 = 27,  // Physical 13, BCM 27
+    /**
+     * Special pin which is the only pin actvely grounded on the Lite board
+     * Defaults to HIGH
+     */
+    .pin_5 = 26,  // Physical 37, BCM 26
 };
 
 
