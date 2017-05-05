@@ -25,13 +25,16 @@ int initialise_ck2_lite(void)
     initialise();
     initialise_detection();
 
+    /**
+     * The sound module was disabled at boot to avoid PiHat drivers from getting
+     * desync'ed on the PWM pin. We enable it back as soon as possible,
+     * regardless of whether we are using the board or not.
+     */
+    system("modprobe -i " SND_MODULE);
+
     if (!is_ck2_lite_connected()) {
         return E_HAT_NOT_ATTACHED;
     }
-
-    // The sound module was disabled at boot to avoid PiHat drivers from getting
-    // desync'ed on the PWM pin. We enable it back as soon as possible.
-    system("modprobe -i " SND_MODULE);
 
     // Traditionally done on init
     system("kano-settings-cli set audio hdmi");
