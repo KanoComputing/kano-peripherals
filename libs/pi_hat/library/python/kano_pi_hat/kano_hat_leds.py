@@ -17,22 +17,23 @@ class KanoHatLeds(KanoHat):
     LED_COUNT = 10
     LED_PIN = 18
 
-    def __init__(self, brightness=127):
+    def __init__(self, brightness=180):
         super(KanoHatLeds, self).__init__()
+
         self._leds = neopixel.Adafruit_NeoPixel(
             KanoHatLeds.LED_COUNT,
             KanoHatLeds.LED_PIN
         )
 
-        self._leds.begin()
         self.set_brightness(brightness)
+        self._leds.begin()
 
     def set_led(self, num, rgb, show=True):
         if len(rgb) != 3:
             # TODO: Should we do something else?
             return False
 
-        red, green, blue = (int(channel * 255.0) for channel in rgb)
+        red, green, blue = (int(channel * self.brightness) for channel in rgb)
         self._leds.setPixelColorRGB(num, red, green, blue)
 
         if show:
@@ -53,4 +54,5 @@ class KanoHatLeds(KanoHat):
         self._leds.show()
 
     def set_brightness(self, brightness):
+        self.brightness = brightness
         self._leds.setBrightness(brightness)
