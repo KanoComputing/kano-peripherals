@@ -37,7 +37,7 @@ int initialise_ck2_lite(void)
     }
 
     // Traditionally done on init
-    system("kano-settings-cli set audio hdmi");
+    system("kano-settings-cli set audio hdmi --force");
 
     return SUCCESS;
 }
