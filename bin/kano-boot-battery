@@ -1,0 +1,80 @@
+#!/bin/bash
+#
+# kano-boot-battery
+#
+# Copyright (C) 2015-2016 Kano Computing Ltd.
+# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
+#
+# Detect if battery is present and with a low charge. Power off the kit if that's the case.
+# This script is run very early on startup, when the filesystems are still mounted read only.
+# See the file systemd/system/kano-bootup-battery.service for details.
+#
+# TODO: Move the GPIO logic into a C application that pulls from the client library.
+#
+
+# PINs to detect battery and charge
+pin_battery_detect=26
+pin_low_battery=16
+
+function is_battery_connected()
+{
+    if [ ! -f /sys/class/gpio/gpio$pin_battery_detect/direction ]; then
+	echo "$pin_battery_detect" > /sys/class/gpio/export
+	echo "in" > /sys/class/gpio/gpio$pin_battery_detect/direction
+    fi
+
+    if [ `cat /sys/class/gpio/gpio$pin_battery_detect/value` == "1" ]; then
+	return 1
+    else
+	return 0
+    fi
+}
+
+function is_low_battery()
+{
+    if [ ! -f /sys/class/gpio/gpio$pin_low_battery/direction ]; then
+	echo "$pin_low_battery" > /sys/class/gpio/export
+	echo "in" > /sys/class/gpio/gpio$pin_low_battery/direction
+    fi
+
+    if [ `cat /sys/class/gpio/gpio$pin_low_battery/value` == "1" ]; then
+	return 1
+    else
+	return 0
+    fi
+}
+
+function sysrq_power_off() {
+
+    # As a safety measure, if root file system is not mounted Ready Only, abort.
+    /bin/mount | /bin/grep "on / " | /bin/grep "ro"
+    if [ "$?" == 0 ]; then
+	# power off immediately via kernel sysrq
+	echo 1 > /proc/sys/kernel/sysrq
+	echo o > /proc/sysrq-trigger
+    else
+	echo "rootfs is not mounted ReadOnly, aborting"
+    fi
+
+    return;
+}
+
+#
+# Script entry
+#
+is_battery_connected
+if [ "$?" == "1" ]; then
+    echo -n "Checking battery status... " > /dev/tty1
+    sleep 3
+
+    is_low_battery
+    if [ "$?" == "1" ]; then
+	echo "WARNING: Battery too low - powering off!" > /dev/tty1
+	sleep 3
+	sysrq_power_off
+    else
+	echo "Battery is in good shape." > /dev/tty1
+    fi
+fi
+
+exit 0
