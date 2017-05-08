@@ -1,0 +1,27 @@
+#
+# kano-boot-battery.service
+#
+# This service will power off the Kit on bootup if the battery charge is too low.
+#
+# It does this by running before the file systems are remounted in Read Write mode.
+# Executes a program to perform the check, and if needed, sysrq is triggered for a power off.
+#
+# Messages will appear on the console if any action is taken.
+# Systemd services and the console log will stay still while this service is running.
+#
+
+[Unit]
+Description=Kano Low Battery bootup
+DefaultDependencies=no
+Conflicts=shutdown.target
+After=systemd-readahead-collect.service systemd-readahead-replay.service systemd-fsck-root.service
+Before=systemd-remount-fs.service
+Wants=local-fs-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/kano-boot-battery
+
+[Install]
+WantedBy=local-fs-pre.target
