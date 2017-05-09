@@ -20,7 +20,12 @@
 int main(int argc, char **argv)
 {
 
-    // TODO: flag to disable the lock file
+    if (argc > 1 && !strcmp(argv[1], "-h")) {
+        printf ("battery-status checks if the battery charge is too low\n");
+        printf ("Result code 1 means battery is connected and charge is critical\n");
+        exit(0);
+    }
+
     if (initialise_ck2_lite() != SUCCESS) {
         printf("could not initialize lite board\n");
     }
@@ -36,5 +41,5 @@ int main(int argc, char **argv)
     printf("is battery low? %s\n", (low ? "yes" : "no"));
 
     clean_up_ck2_pro();
-    exit( connected && low );
+    exit (connected && low);
 }
