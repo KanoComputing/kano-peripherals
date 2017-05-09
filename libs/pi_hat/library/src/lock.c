@@ -24,6 +24,11 @@ int get_lock()
     if (lock_fd != -1)
         return E_ALREADY_INITIALISED;
 
+    // assume no lock is needed if we cannot write to the file - see kano-boot-battery
+    if (access(lock_file, W_OK)) {
+        return SUCCESS;
+    }
+
     lock_fd = open(lock_file, O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
 
     if (lock_fd == -1)
