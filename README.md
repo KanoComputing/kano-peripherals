@@ -4,7 +4,7 @@ Support code for peripherals (initially, speaker LEDs).
 
 ## battery-status
 
-A tool that detects if the battery is connected and if the charge is too low to powerup to Kano kit.
+A tool that detects if the battery is connected and if the charge is too low, to power off the kit.
 See the file `bin/kano-boot-battery` for details.
 
 WARNING
