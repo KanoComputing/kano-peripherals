@@ -6,6 +6,7 @@
  * License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
  *
  * Tool to detect if the battery is connected and the charge is too low.
+ * Exit code is 1 when this is the case.
  *
  */
 
@@ -35,5 +36,5 @@ int main(int argc, char **argv)
     printf("is battery low? %s\n", (low ? "yes" : "no"));
 
     clean_up_ck2_pro();
-    exit(0);
+    exit( connected && low );
 }
