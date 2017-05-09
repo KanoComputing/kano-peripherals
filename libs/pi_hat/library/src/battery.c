@@ -20,7 +20,7 @@
 
 
 // Tweak these values to clean battery state input
-const unsigned int debounce_delay = 10000;  // microseconds
+const unsigned int debounce_delay = 50000;  // microseconds
 const unsigned int counter_threshold = 5;
 
 

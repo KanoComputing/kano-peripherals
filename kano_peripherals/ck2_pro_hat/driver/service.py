@@ -11,6 +11,7 @@
 # afterwards. However, there is a safety mechanism in place in case that fails.
 
 
+import os
 import time
 import dbus
 import dbus.service
@@ -20,11 +21,15 @@ from gi.repository import GLib
 
 from kano.utils import run_bg
 from kano.notifications import display_generic_notification, \
-    close_current_notification
+    close_current_notification, update_current_notification
 
 from kano_peripherals.lockable_service import LockableService
 from kano_peripherals.paths import CK2_PRO_HAT_OBJECT_PATH, CK2_PRO_HAT_IFACE
 from kano_pi_hat.ck2_pro_hat import CK2ProHat
+
+
+ERROR_NOTIF_IMAGE = '/usr/share/kano-peripherals/assets/low_battery_alert.png'
+ERROR_NOTIF_SOUND = '/usr/share/kano-media/sounds/kano_error.wav'
 
 
 class CK2ProHatService(dbus.service.Object):
@@ -46,6 +51,8 @@ class CK2ProHatService(dbus.service.Object):
 
         self.is_power_button_enabled = Value('b', False)
         self._notif_trigger = Event()
+        self.shutdown_time_remaining = None
+        self._notif_open = Event()
 
         p = Process(
             target=self._interrupt_thread,
@@ -55,7 +62,11 @@ class CK2ProHatService(dbus.service.Object):
 
         battery_notif_thr = Thread(
             target=self._create_notif_thr,
-            args=(self._notif_trigger,)
+            args=(
+                self._notif_trigger,
+                self._notif_open,
+                self.is_power_button_enabled
+            )
         )
         battery_notif_thr.daemon = True
         battery_notif_thr.start()
@@ -145,7 +156,7 @@ class CK2ProHatService(dbus.service.Object):
         """
         pass
 
-    def _create_notif_thr(self, notif_trigger):
+    def _create_notif_thr(self, notif_trigger, notif_open, shutdown_enabled):
         '''
         A simple thread which queues a notification in the main thread whenever
         the interrupt multiprocessing.Process triggers one.
@@ -160,13 +171,15 @@ class CK2ProHatService(dbus.service.Object):
             GLib.idle_add(
                 self.create_notif,
                 level,
+                notif_open,
+                shutdown_enabled,
                 priority=GLib.PRIORITY_HIGH_IDLE
             )
 
             notif_trigger.clear()
 
 
-    def create_notif(self, level):
+    def create_notif(self, level, notif_open, shutdown_enabled):
         '''
         Triggers a notification to be opened or removed based on the battery
         state
@@ -178,15 +191,97 @@ class CK2ProHatService(dbus.service.Object):
             `Process`es.
         '''
         if level < 20:
+            if notif_open.is_set():
+                return
+
             display_generic_notification(
                 'Plug In Your Kit!',
                 'Your kit has a low battery and will turn off soon!',
-                image='/usr/share/kano-peripherals/assets/low_battery_alert.png',
-                sound='/usr/share/kano-media/sounds/kano_error.wav',
+                image=ERROR_NOTIF_IMAGE,
+                sound=ERROR_NOTIF_SOUND,
+                urgency='critical'
+            )
+
+            if shutdown_enabled.value:
+                GLib.timeout_add_seconds(
+                    5 * 60,
+                    self._low_power_shutdown,
+                    notif_open
+                )
+
+            notif_open.set()
+        else:
+            close_current_notification()
+            notif_open.clear()
+
+
+    @staticmethod
+    def _update_countdown(time_remaining, create=False):
+        '''
+        Provides an update on the shutdown timer via a notification
+        '''
+
+        shutdown_title = 'Kit is shutting down!'
+        shutdown_msg = 'Your kit will shutdown in {sec} seconds'
+
+        if create:
+            close_current_notification()
+            display_generic_notification(
+                shutdown_title,
+                shutdown_msg.format(sec=time_remaining),
+                image=ERROR_NOTIF_IMAGE,
+                sound=ERROR_NOTIF_SOUND,
                 urgency='critical'
             )
         else:
+            update_current_notification(
+                desc=shutdown_msg.format(sec=time_remaining)
+            )
+
+
+    def _low_power_shutdown(self, notif_open):
+        '''
+        Handles the shutdown countdown when the power is low
+        '''
+
+        if not self.is_battery_low():
+            # No longer in the danger zone, cancel all timers
+            self.shutdown_time_remaining = None
             close_current_notification()
+            notif_open.clear()
+
+            return False
+
+
+        if not self.shutdown_time_remaining:
+            # Initialise the shutdown timer
+            self.shutdown_time_remaining = 60
+            self._update_countdown(self.shutdown_time_remaining, create=True)
+            GLib.timeout_add_seconds(
+                1,
+                self._low_power_shutdown,
+                notif_open
+            )
+
+            return False  # Cancel the 5 minute timer, keep the 1 second one
+
+
+        self.shutdown_time_remaining -= 1
+
+        if self.shutdown_time_remaining > 0:
+            self._update_countdown(self.shutdown_time_remaining)
+
+            return True
+
+
+        # The timer has expired, actually shutdown
+        update_current_notification(
+            title='Shutting down',
+            desc='Your kit ran out of power'
+        )
+        os.system("sudo poweroff")
+
+        return False
 
 
     # --- Power Button ------------------------------------------------------------------
