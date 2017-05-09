@@ -46,25 +46,32 @@ def main():
     threads_init()
 
     try:
-        # reserving the bus name, other instances of kano-boards-daemon will fail
+        # Reserving the bus name, other instances of kano-boards-daemon will fail.
         bus_name = dbus.service.BusName(BUS_NAME, bus=dbus.SystemBus(), do_not_queue=True)
 
-        # available services, add more here
-        speakerleds_service = SpeakerLEDsService(bus_name)
+        # Starting available D-Bus services, add more here.
+        # speakerleds_service = SpeakerLEDsService(bus_name)  # Disabled.
         pihat_service = PiHatService(bus_name)
         ck2prohat_service = CK2ProHatService(bus_name)
 
     except dbus.exceptions.NameExistsException as e:
-        logger.warn('Could not reserve the SystemBus name, most likely another instance'
-                    ' of kano-boards-daemon already exists. - [{}]'.format(e))
+        logger.warn(
+            'Could not reserve the SystemBus name, most likely another instance'
+            ' of kano-boards-daemon already exists.\n{}'.format(e)
+        )
         return 1
 
     except Exception as e:
-        logger.error('Unexpected error when starting the services.\n{}'
-                     .format(traceback.format_exc()))
+        logger.error(
+            'Unexpected error when starting the services.\n{}'
+            .format(traceback.format_exc())
+        )
         return 2
 
     GObject.MainLoop().run()
+
+    # Exit cleanly.
+    return 0
 
 
 if __name__ == '__main__':
