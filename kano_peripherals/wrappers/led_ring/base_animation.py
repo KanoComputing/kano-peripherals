@@ -186,7 +186,7 @@ class BaseAnimation(object):
 
         return result_func
 
-    def animate(self, value_function, duration, cycles, update_rate=0.02, mask=None):
+    def animate(self, value_function, duration, cycles, update_rate=0.04, mask=None):
         """
         """
         successful = True
