@@ -12,6 +12,8 @@
 
 . gettext.sh
 
+export TEXTDOMAIN="kano-peripherals"
+
 function sysrq_power_off() {
 
     # As a safety measure, if root file system is not mounted Ready Only, abort.

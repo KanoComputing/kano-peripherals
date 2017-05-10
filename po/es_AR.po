@@ -18,10 +18,10 @@ msgstr ""
 
 #: ../bin/kano-boot-battery:36
 #, sh-format
-msgid "ALERTA: La carga de la bateria es muy baja, conecta el cargador"
-msgstr ""
+msgid "WARNING: Battery charge is too low, please connect the charger"
+msgstr "ALERTA: La carga de la bateria es muy baja, conecta el cargador"
 
 #: ../bin/kano-boot-battery:37
 #, sh-format
-msgid "Apagando el kit ahora..."
-msgstr ""
+msgid "Powering off the kit now..."
+msgstr "Apagando el kit ahora..."
