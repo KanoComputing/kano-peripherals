@@ -34,7 +34,9 @@ function sysrq_power_off() {
 if [ "$?" == "1" ]; then
     # TODO: i18n messages below
     eval_gettext "WARNING: Battery charge is too low, please connect the charger" > /dev/tty1
+    echo > /dev/tty1
     eval_gettext "Powering off the kit now..." > /dev/tty1
+    echo > /dev/tty1
     sleep 10
     sysrq_power_off
 fi
