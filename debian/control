@@ -42,3 +42,8 @@ Depends:
     ${misc:Depends},
     libkano-hat (= ${source:Version})
 Description: Dev version of library for interacting with the Kano Hat
+
+Package: kano-peripherals-i18n-orig
+Architecture: all
+Description: Data for working on translations of kano-peripherals
+Multi-Arch: foreign
