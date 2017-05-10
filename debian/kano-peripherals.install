@@ -11,3 +11,5 @@ etc/udev/rules.d etc/udev/
 etc/modprobe.d/* etc/modprobe.d/
 
 libs/pi_hat/battery-status /usr/bin
+
+locale/* /usr/share/locale
