@@ -35,6 +35,6 @@ if [ "$?" == "1" ]; then
     echo "Powering off the kit now..." > /dev/tty1
     sleep 3
     sysrq_power_off
-else
-    
+fi
+
 exit 0
