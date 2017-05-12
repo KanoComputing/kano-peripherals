@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# kano-peripherals.postinst
+#
+# Copyright (C) 2017 Kano Computing Ltd.
+# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPLv2
+#
+
+case "$1" in
+    configure)
+
+        # Enable the battery bootup service
+        systemctl enable kano-bootup-battery
+        ;;
+esac
