@@ -13,7 +13,7 @@ import signal
 
 from kano.utils import run_bg
 
-from kano_peripherals.speaker_leds.driver.high_level import get_speakerleds_interface
+# from kano_peripherals.speaker_leds.driver.high_level import get_speakerleds_interface
 from kano_peripherals.pi_hat.driver.high_level import get_pihat_interface
 
 
@@ -40,9 +40,9 @@ class BaseAnimation(object):
         Returns:
             successful - bool whether was able to connect to a board
         """
-        self.iface = get_speakerleds_interface(retry_count=retry_count)
-        if self.iface and self.iface.detect():
-            return True
+        # self.iface = get_speakerleds_interface(retry_count=retry_count)
+        # if self.iface and self.iface.detect():
+        #     return True
 
         self.iface = get_pihat_interface(retry_count=retry_count)
         if self.iface and self.iface.detect():
