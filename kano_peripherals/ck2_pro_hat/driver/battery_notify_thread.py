@@ -13,6 +13,8 @@ from gi.repository import GLib
 from kano.notifications import display_generic_notification, \
     close_current_notification, update_current_notification
 
+from kano_profile.tracker import generate_event
+
 
 SHUTDOWN_WARN_TIME = 5 * 60  # seconds
 SHUTDOWN_TIMEOUT = 60  # seconds
@@ -91,6 +93,9 @@ class BatteryNotifyThread(threading.Thread):
         if self._is_battery_low():
             if self._notif_open.is_set():
                 return
+
+            # Track low battery detected
+            generate_event('low-battery')
 
             display_generic_notification(
                 'Plug In Your Kit!',
@@ -175,6 +180,9 @@ class BatteryNotifyThread(threading.Thread):
             title='Shutting down',
             desc='Your kit ran out of power'
         )
+
+        # Track that we are powering off now
+        generate_event('auto-poweroff')
         os.system("sudo poweroff")
 
         return False
