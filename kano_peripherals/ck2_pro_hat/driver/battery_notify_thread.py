@@ -13,7 +13,7 @@ from gi.repository import GLib
 from kano.notifications import display_generic_notification, \
     close_current_notification, update_current_notification
 
-from kano_profile.tracker import generate_event
+from kano_profile.tracking_events import generate_event
 
 
 SHUTDOWN_WARN_TIME = 5 * 60  # seconds
