@@ -23,7 +23,7 @@ class Notification(BaseAnimation):
     This is a wrapper over Pi Hat and LED Speaker.
     """
 
-    LOCK_PRIORITY = 2
+    LOCK_PRIORITY = 3
 
     def __init__(self):
         super(Notification, self).__init__()

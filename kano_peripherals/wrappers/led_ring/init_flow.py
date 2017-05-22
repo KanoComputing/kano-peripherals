@@ -23,7 +23,7 @@ class InitFlow(BaseAnimation):
     This is a wrapper over Pi Hat and LED Speaker.
     """
 
-    LOCK_PRIORITY = 1
+    LOCK_PRIORITY = 2
 
     def __init__(self):
         super(InitFlow, self).__init__()
