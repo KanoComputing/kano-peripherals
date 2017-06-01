@@ -1,6 +1,6 @@
 # paths.py
 #
-# Copyright (C) 2015-2016 Kano Computing Ltd.
+# Copyright (C) 2015 - 2017 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
 # Includes all the necessary paths for kano-peripherals
@@ -9,9 +9,14 @@
 from os.path import join
 
 
-# dbus daemon for kano boards
+# DBus daemon for kano boards
 BUS_NAME = 'me.kano.boards'
 OBJECT_BASE_PATH = '/me/kano/boards'
+
+# The Service Manager
+SERVICE_MANAGER_OBJECT_NAME = 'ServiceManager'
+SERVICE_MANAGER_OBJECT_PATH = join(OBJECT_BASE_PATH, SERVICE_MANAGER_OBJECT_NAME)
+SERVICE_MANAGER_IFACE = '.'.join([BUS_NAME, SERVICE_MANAGER_OBJECT_NAME])
 
 # Kano LED Speaker
 SPEAKER_LEDS_OBJECT_NAME = 'SpeakerLED'
