@@ -9,6 +9,4 @@ DefaultDependencies=true
 
 [Service]
 ExecStart=/usr/bin/sudo /usr/bin/kano-boards-daemon
-
-[Install]
-WantedBy=multi-user.target
+ExecStop=/usr/bin/kano-boards-daemon stop

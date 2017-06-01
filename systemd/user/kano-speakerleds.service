@@ -12,6 +12,3 @@ DefaultDependencies=true
 [Service]
 ExecStart=/usr/bin/kano-speakerleds cpu-monitor start --check
 KillSignal=SIGINT
-
-[Install]
-WantedBy=multi-user.target
