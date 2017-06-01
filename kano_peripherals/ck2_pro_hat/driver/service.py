@@ -3,12 +3,11 @@
 # Copyright (C) 2017 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
-# Low level programming of the Pi Hat board through a DBus Service.
+# Low level programming of the Power Hat board through a DBus Service.
 #
-# Using the high_level functions from multiple processes will MERGE animations! It was
-# thought that Kano apps using it would use lock() to get exclusive access. The locking
-# mechanism is a binary semaphore with priority levels and REQUIRES one to unlock() it
-# afterwards. However, there is a safety mechanism in place in case that fails.
+# It is also responsible for monitoring the battery level, providing OS
+# notifications and OS shutdown on low battery. It also launches the
+# shutdown-menu dialog when the button on the board is pressed.
 
 
 import time
@@ -18,9 +17,7 @@ from multiprocessing import Process, Value, Event
 
 from kano.utils import run_bg
 
-from kano_peripherals.ck2_pro_hat.driver.battery_notify_thread import \
-    BatteryNotifyThread
-from kano_peripherals.lockable_service import LockableService
+from kano_peripherals.ck2_pro_hat.driver.battery_notify_thread import BatteryNotifyThread
 from kano_peripherals.paths import CK2_PRO_HAT_OBJECT_PATH, CK2_PRO_HAT_IFACE
 from kano_pi_hat.ck2_pro_hat import CK2ProHat
 
@@ -35,29 +32,41 @@ class CK2ProHatService(dbus.service.Object):
     Requires sudo.
     """
 
-
     def __init__(self, bus_name):
+        """
+        Constructor for the CK2ProHatService.
+
+        Args:
+            bus_name - A dbus.service.BusName object to configure the base address.
+        """
         super(CK2ProHatService, self).__init__(bus_name, CK2_PRO_HAT_OBJECT_PATH)
 
-        self._pi_hat = CK2ProHat()
+        self.ck2_pro_hat = CK2ProHat()
         self.setup()
 
         self.is_power_button_enabled = Value('b', False)
-        self._notif_trigger = Event()
+        self.notif_trigger = Event()
 
-        p = Process(
+        self.interrupt_thread = Process(
             target=self._interrupt_thread,
-            args=(self.is_power_button_enabled, self._notif_trigger)
+            args=(self.is_power_button_enabled, self.notif_trigger)
         )
-        p.start()
+        self.interrupt_thread.start()
 
-        # Thread that triggers notifications when the battery level drops
-        battery_notif_thr = BatteryNotifyThread(
-            self._notif_trigger,
+        # Thread that triggers notifications when the battery level drops.
+        self.battery_notif_thread = BatteryNotifyThread(
+            self.notif_trigger,
             self.is_power_button_enabled,
             self.is_battery_low
         )
-        battery_notif_thr.start()
+        self.battery_notif_thread.start()
+
+    def stop(self):
+        """
+        Stop all running (sub)processes and clean up before process termination.
+        """
+        self.interrupt_thread.terminate()
+        self.battery_notif_thread.join(1.5)
 
     # --- Board Detection ---------------------------------------------------------------
 
@@ -68,7 +77,7 @@ class CK2ProHatService(dbus.service.Object):
 
         This is called on startup and does not require to be called manually.
         """
-        self._pi_hat.initialise()
+        self.ck2_pro_hat.initialise()
 
     @dbus.service.method(CK2_PRO_HAT_IFACE, in_signature='', out_signature='b')
     def detect(self):
@@ -78,12 +87,12 @@ class CK2ProHatService(dbus.service.Object):
         Returns:
             connected - bool whether the board is plugged in or not.
         """
-        return self._pi_hat.is_connected()
+        return self.ck2_pro_hat.is_connected()
 
     @dbus.service.method(CK2_PRO_HAT_IFACE, in_signature='', out_signature='b')
     def is_plugged(self):
         """ Same as detect. """
-        return self._pi_hat.is_connected()
+        return self.ck2_pro_hat.is_connected()
 
     # --- DBus Interface Testing --------------------------------------------------------
 
@@ -111,7 +120,7 @@ class CK2ProHatService(dbus.service.Object):
             True - the battery level is low
             False - the battery level is high
         """
-        return self._pi_hat.is_battery_low()
+        return self.ck2_pro_hat.is_battery_low()
 
     @dbus.service.method(CK2_PRO_HAT_IFACE, in_signature='', out_signature='i')
     def get_battery_level(self):
@@ -144,9 +153,7 @@ class CK2ProHatService(dbus.service.Object):
         """
         pass
 
-
     # --- Power Button ------------------------------------------------------------------
-
 
     @dbus.service.method(CK2_PRO_HAT_IFACE, in_signature='b', out_signature='')
     def set_power_button_enabled(self, enabled):
@@ -203,7 +210,6 @@ class CK2ProHatService(dbus.service.Object):
             '''
             self.power_level_changed(self.get_battery_level())
             notif_trigger.set()
-
 
         kano_hat.register_power_off_cb(_launch_shutdown_menu)
         kano_hat.register_battery_level_changed_cb(battery_changed_cb)

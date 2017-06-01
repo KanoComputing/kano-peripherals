@@ -2,22 +2,38 @@
 
 # kano-boards-daemon
 #
-# Copyright (C) 2015-2016 Kano Computing Ltd.
+# Copyright (C) 2015 - 2017 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
 # The DBus daemon which handles Kano hardware board add-ons.
 # Currently, it only exports an interface for the LED Speaker.
 #
-# The deamon uses a system bus under the bus name 'me.kano.boards'
+# The daemon uses a system bus under the bus name 'me.kano.boards'
 
+"""
+Usage:
+    kano-boards-daemon
+    kano-boards-daemon start
+    kano-boards-daemon stop
+    kano-boards-daemon -h | --help
+
+Arguments:
+    start         Starts the daemon. This is optional and is used by default.
+    stop          Stops the daemon cleanly.
+
+Options:
+    -h, --help    Show this message.
+"""
 
 import os
 import sys
+import time
 import traceback
 import dbus.exceptions
-from dbus.mainloop.glib import DBusGMainLoop, threads_init
 
-from gi.repository import GObject
+from docopt import docopt
+from dbus.mainloop.glib import DBusGMainLoop, threads_init
+from gi.repository import GLib, GObject
 
 if __name__ == '__main__' and __package__ is None:
     DIR_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -34,45 +50,78 @@ if __name__ == '__main__' and __package__ is None:
 
 from kano.logging import logger
 
-from kano_peripherals.speaker_leds.driver.service import SpeakerLEDsService
+from kano_peripherals.service_manager import ServiceManager
+# from kano_peripherals.speaker_leds.driver.service import SpeakerLEDsService
 from kano_peripherals.pi_hat.driver.service import PiHatService
 from kano_peripherals.ck2_pro_hat.driver.service import CK2ProHatService
+from kano_peripherals.utils import get_service_manager_interface
 from kano_peripherals.paths import BUS_NAME
 
+from kano_peripherals.return_codes import *
 
-def main():
-    GObject.threads_init()
-    DBusGMainLoop(set_as_default=True)
-    threads_init()
 
-    try:
-        # Reserving the bus name, other instances of kano-boards-daemon will fail.
-        bus_name = dbus.service.BusName(BUS_NAME, bus=dbus.SystemBus(), do_not_queue=True)
+def main(args):
 
-        # Starting available D-Bus services, add more here.
-        # speakerleds_service = SpeakerLEDsService(bus_name)  # Disabled.
-        pihat_service = PiHatService(bus_name)
-        ck2prohat_service = CK2ProHatService(bus_name)
+    if args['start'] or not args['stop']:
+        logger.info('main: Starting daemon..')
 
-    except dbus.exceptions.NameExistsException as e:
-        logger.warn(
-            'Could not reserve the SystemBus name, most likely another instance'
-            ' of kano-boards-daemon already exists.\n{}'.format(e)
-        )
-        return 1
+        # Initialising GLib and DBus threads.
+        GObject.threads_init()
+        threads_init()
 
-    except Exception as e:
-        logger.error(
-            'Unexpected error when starting the services.\n{}'
-            .format(traceback.format_exc())
-        )
-        return 2
+        # Setting up the daemon main loop.
+        DBusGMainLoop(set_as_default=True)
+        loop = GLib.MainLoop()
 
-    GObject.MainLoop().run()
+        service_manager = None
+
+        try:
+            # Reserving the bus name, other instances of kano-boards-daemon will fail.
+            bus_name = dbus.service.BusName(BUS_NAME, bus=dbus.SystemBus(), do_not_queue=True)
+
+            # Starting available D-Bus services, add more here.
+            service_manager = ServiceManager(
+                bus_name,
+                loop,
+                services=[
+                    # SpeakerLEDsService,  # Disabled.
+                    PiHatService,
+                    CK2ProHatService
+                ]
+            )
+        except dbus.exceptions.NameExistsException as e:
+            logger.warn(
+                'Could not reserve the SystemBus name, most likely another instance'
+                ' of kano-boards-daemon already exists.\n{}'.format(e)
+            )
+            return RC_SECOND_INSTANCE
+
+        except Exception as e:
+            logger.error(
+                'Unexpected error when starting the services.\n{}'
+                .format(traceback.format_exc())
+            )
+            return RC_UNKNOWN_EXCEPTION
+
+        loop.run()
+
+    elif args['stop']:
+        logger.info('main: Stopping daemon..')
+
+        service_manager_iface = get_service_manager_interface()
+        if service_manager_iface:
+            service_manager_iface.stop()
+
+            # The stop() above is async. Wait for it to cleanup all processes.
+            time.sleep(1)
+        else:
+            logger.error('Could not stop the daemon safely!')
+            return RC_FAILED_STOP_DAEMON
 
     # Exit cleanly.
-    return 0
+    return RC_SUCCESSFUL
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    args = docopt(__doc__)
+    sys.exit(main(args))

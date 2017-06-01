@@ -16,6 +16,7 @@ import dbus
 import dbus.service
 from multiprocessing import Process, Value
 
+from kano.logging import logger
 from kano.utils import run_bg
 
 from kano_peripherals.lockable_service import LockableService
@@ -41,15 +42,33 @@ class PiHatService(dbus.service.Object):
     MAX_PRIORITY_LEVEL = 10  # this is public
 
     def __init__(self, bus_name):
+        """
+        Constructor for the CK2ProHatService.
+
+        Args:
+            bus_name - A dbus.service.BusName object to configure the base address.
+        """
         super(PiHatService, self).__init__(bus_name, PI_HAT_OBJECT_PATH)
 
         self.lockable_service = LockableService(max_priority=self.MAX_PRIORITY_LEVEL)
-        self._pi_hat = KanoHatLeds()
+        self.pi_hat = KanoHatLeds()
         self.setup()
 
         self.is_power_button_enabled = Value('b', False)
-        p = Process(target=self._power_button_thread, args=(self.is_power_button_enabled,))
-        p.start()
+        self.power_button_thread = Process(
+            target=self._power_button_thread,
+            args=(self.is_power_button_enabled,)
+        )
+        self.power_button_thread.start()
+
+    def stop(self):
+        """
+        Stop all running (sub)processes and clean up before process termination.
+        """
+        self.power_button_thread.terminate()
+
+        if not self.set_leds_off():
+            logger.error('PiHatService: stop: Could not turn off leds!')
 
     # --- Board Detection ---------------------------------------------------------------
 
@@ -60,7 +79,7 @@ class PiHatService(dbus.service.Object):
 
         This is called on startup and does not require to be called manually.
         """
-        self._pi_hat.initialise()
+        self.pi_hat.initialise()
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b')
     def detect(self):
@@ -70,12 +89,12 @@ class PiHatService(dbus.service.Object):
         Returns:
             connected - bool whether the board is plugged in or not.
         """
-        return self._pi_hat.is_connected()
+        return self.pi_hat.is_connected()
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b')
     def is_plugged(self):
         """ Same as detect. """
-        return self._pi_hat.is_connected()
+        return self.pi_hat.is_connected()
 
     # --- API Locking -------------------------------------------------------------------
 
@@ -241,7 +260,7 @@ class PiHatService(dbus.service.Object):
            self.lockable_service.get_lock().get()['sender_id'] != sender_id:
             return False
 
-        return self._pi_hat.set_all_leds(values)
+        return self.pi_hat.set_all_leds(values)
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='i(ddd)', out_signature='b', sender_keyword='sender_id')
     def set_led(self, num, rgb, sender_id=None):
@@ -262,7 +281,7 @@ class PiHatService(dbus.service.Object):
            self.lockable_service.get_lock().get()['sender_id'] != sender_id:
             return False
 
-        return self._pi_hat.set_led(num, rgb)
+        return self.pi_hat.set_led(num, rgb)
 
     @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='i')
     def get_num_leds(self):
