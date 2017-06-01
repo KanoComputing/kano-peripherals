@@ -59,11 +59,11 @@ def main(args):
         # if iface and iface.detect():
         #     return RC_KANO_LED_SPEAKER_DETECTED
 
-        iface = get_pihat_interface(retry=1)
+        iface = get_pihat_interface(retry_count=1)
         if iface and iface.detect():
             return RC_KANO_PI_HAT_DETECTED
 
-        iface = get_ck2_pro_hat_interface(retry=1)
+        iface = get_ck2_pro_hat_interface(retry_count=1)
         if iface and iface.detect():
             return RC_KANO_POWER_HAT_DETECTED
 

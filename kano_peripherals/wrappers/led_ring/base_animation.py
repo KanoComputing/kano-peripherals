@@ -11,6 +11,7 @@ import math
 import time
 import signal
 
+from kano.logging import logger
 from kano.utils import run_bg
 
 # from kano_peripherals.speaker_leds.driver.high_level import get_speakerleds_interface
@@ -214,12 +215,20 @@ class BaseAnimation(object):
             now = time.time()  # seconds since the epoch as float
 
         if self.iface:
-            self.iface.set_leds_off()
+            successful = self.iface.set_leds_off()
+            if not successful:
+                logger.error('BaseAnimation: animate: Could not turn off LEDs!')
+        else:
+            logger.error('BaseAnimation: animate: No service iface available!')
 
         return successful
 
     def _signal_handler(self, signum, frame):
         self.interrupted = True
         if self.iface:
-            self.iface.set_leds_off()
+            successful = self.iface.set_leds_off()
+            if not successful:
+                logger.error('BaseAnimation: _signal_handler: Could not turn off LEDs!')
             self.iface.unlock()
+        else:
+            logger.error('BaseAnimation: _signal_handler: No service iface available!')
