@@ -60,6 +60,18 @@ from kano_peripherals.paths import BUS_NAME
 from kano_peripherals.return_codes import *
 
 
+def only_hope():
+    """
+    The utmost last resort to clean up after DBus services.
+    """
+    from kano_pi_hat.kano_hat_leds import KanoHatLeds
+
+    # PiHatService
+    pi_hat = KanoHatLeds()
+    if pi_hat.is_connected():
+        pi_hat.set_all_leds([(0, 0, 0)] * 10)
+
+
 def main(args):
 
     if args['start'] or not args['stop']:
@@ -108,14 +120,15 @@ def main(args):
     elif args['stop']:
         logger.info('main: Stopping daemon..')
 
-        service_manager_iface = get_service_manager_interface()
-        if service_manager_iface:
+        service_manager_iface = get_service_manager_interface(retry_count=0)
+        if service_manager_iface and False:
             service_manager_iface.stop()
 
             # The stop() above is async. Wait for it to cleanup all processes.
             time.sleep(1)
         else:
             logger.error('Could not stop the daemon safely!')
+            only_hope()
             return RC_FAILED_STOP_DAEMON
 
     # Exit cleanly.

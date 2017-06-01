@@ -9,4 +9,4 @@ DefaultDependencies=true
 
 [Service]
 ExecStart=/usr/bin/sudo /usr/bin/kano-boards-daemon
-ExecStop=/usr/bin/kano-boards-daemon stop
+ExecStop=/usr/bin/sudo /usr/bin/kano-boards-daemon stop
