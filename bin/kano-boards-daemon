@@ -121,7 +121,7 @@ def main(args):
         logger.info('main: Stopping daemon..')
 
         service_manager_iface = get_service_manager_interface(retry_count=0)
-        if service_manager_iface and False:
+        if service_manager_iface:
             service_manager_iface.stop()
 
             # The stop() above is async. Wait for it to cleanup all processes.
