@@ -216,8 +216,6 @@ class BaseAnimation(object):
 
         if self.iface:
             successful = self.iface.set_leds_off()
-            if not successful:
-                logger.error('BaseAnimation: animate: Could not turn off LEDs!')
         else:
             logger.error('BaseAnimation: animate: No service iface available!')
 
