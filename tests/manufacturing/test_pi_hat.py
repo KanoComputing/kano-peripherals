@@ -71,6 +71,7 @@ class TestPiHat(unittest.TestCase):
 
         while response not in ('yes', 'no', 'y', 'n'):
             animation.start(2.5, 5.0)
+            animation.iface.unlock()
             text = 'Did you see the LEDs light up? Please type "y" or "n". Type "r" to replay. '
             text = colours.decorate_with_preset(text, "warning")
             response = raw_input(text).lower().strip()
