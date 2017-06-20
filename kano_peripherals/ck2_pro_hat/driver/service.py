@@ -190,23 +190,14 @@ class CK2ProHatService(dbus.service.Object):
             if not is_enabled.value:
                 return
 
-
-            #
             # FIXME: The problem: The poppa menu eventually pops up on a naked PI
             # with no powerhat board connected, right in the middle of Dashboard loading up,
             # grabbing user input and consequently blocking the user completely.
             # Solution: prevent the poppa menu from appearing if the Dashboard
             # has not been running for long enough.
-            #
-            dashboard_up_seconds=20
-            try:
-                dashboard_times=os.popen('ps -p $(pidof kano-dashboard) -o etimes=').read().strip()
-                if (not dashboard_times.startswith('error') and int(dashboard_times) < dashboard_up_seconds):
-                    # The dashboard is loading up, do not popup the menu now, discard event
-                    return
-            except:
-                pass
 
+            if time.time() - startup_timestamp < 20:
+                return
 
             # TODO: The env vars bellow are a workaround the fact that Qt5 apps are
             #   stacking on top of each other creating multiple mice, events propagating
@@ -218,6 +209,8 @@ class CK2ProHatService(dbus.service.Object):
                 ' --setenv=QT_QPA_EVDEV_MOUSE_PARAMETERS=grab=1'
                 ' /usr/bin/shutdown-menu'
             )
+
+        startup_timestamp = time.time()
 
         kano_hat = CK2ProHat()
         kano_hat.initialise()
