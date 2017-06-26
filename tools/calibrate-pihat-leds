@@ -1,0 +1,167 @@
+#!/usr/bin/env python
+
+# calibrate-pihat-leds
+#
+# Copyright (C) 2017 Kano Computing Ltd.
+# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
+#
+# Small program to interactively cycle through a list of colours and find
+# a suitable calibration amount.
+
+"""
+calibrate-pihat-leds is a small program to help calibrate the LED colours.
+                     List of colours here: https://drafts.csswg.org/css-color-4/#named-colors
+
+Usage:
+    calibrate-pihat-leds [--red=<red>] [--green=<green>] [--blue=<blue>]
+    calibrate-pihat-leds -h
+
+Options:
+    -r, --red=<red>      The red calibration factor to adjust the actual value with.
+    -g, --green=<green>  The green calibration factor to adjust the actual value with.
+    -b, --blue=<blue>    The blue calibration factor to adjust the actual value with.
+    -h, --help       Show this message.
+
+Values:
+    <red>     A float value from 0.0 to 1.0 (default) to multiply the red amount by.
+    <green>   A float value from 0.0 to 1.0 (default) to multiply the green amount by.
+    <blue>    A float value from 0.0 to 1.0 (default) to multiply the blue amount by.
+
+Examples:
+    calibrate-pihat-leds --green 0.6   This will reduce the green amount to 60%.
+"""
+
+
+import tty
+import sys
+import bisect
+import docopt
+import termios
+from PIL import ImageColor
+
+from kano_peripherals.pi_hat.driver.high_level import get_pihat_interface
+
+
+RC_SUCCESS = 0
+RC_INCORRECT_ARGUMENTS = 1
+RC_NO_PIHAT_IFACE = 2
+RC_NO_PIL_COLOURS = 3
+
+
+def print_instructions():
+    print "\nThis animation will cycle through all the colours in Python PIL."
+    print "Compare LEDs with colours here: https://drafts.csswg.org/css-color-4/#named-colors"
+    print "Press [A] and [D] to go back and forward in the colours list."
+    print "You can also press [Q] to quit at any time.\n"
+
+
+def getch():
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        ch = sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    return ch
+
+
+def main(args):
+    # Argument parsing and validation.
+    try:
+        calibration_red = float(args['--red']) if args['--red'] else 1.0
+    except:
+        print '<red> value is not a float number!'
+        return RC_INCORRECT_ARGUMENTS
+
+    try:
+        calibration_green = float(args['--green']) if args['--green'] else 1.0
+    except:
+        print '<green> value is not a float number!'
+        return RC_INCORRECT_ARGUMENTS
+
+    try:
+        calibration_blue = float(args['--blue']) if args['--blue'] else 1.0
+    except:
+        print '<blue> value is not a float number!'
+        return RC_INCORRECT_ARGUMENTS
+
+    # Connect to the PiHat board.
+    pihat_iface = get_pihat_interface()
+    if not pihat_iface:
+        print "Could not grab the D-Bus interface to the PiHat board!"
+        return RC_NO_PIHAT_IFACE
+
+    # Basic checking of PIL.
+    if not ImageColor.colormap:
+        print "Could not find the colours dictionary from PIL!"
+        return RC_NO_PIL_COLOURS
+
+    print_instructions()
+
+    # Create an alphabetically sorted list of colour names from PIL.
+    colours = list()
+    for colour in ImageColor.colormap:
+        bisect.insort_left(colours, colour)
+
+    # Lock the PiHat LEDs API from other services. I'm the captain now.
+    max_priority_lock = pihat_iface.get_max_lock_priority()
+    pihat_iface.lock(max_priority_lock)
+
+    # Get the number of LEDs on the PiHat LED ring.
+    pihat_num_leds = pihat_iface.get_num_leds()
+
+    # Turn all LEDs on with each colour in the PIL library and ask the user
+    # to when to progress further.
+    colour_index = 0
+    stop_cycle = False
+
+    while colour_index < len(colours) and not stop_cycle:
+        colour_name = colours[colour_index]
+
+        # Get and calibrate the RGB value of the colour.
+        color_tuple = ImageColor.getrgb(colour_name)
+        red, green, blue = tuple(round(channel / 255.0, 2) for channel in color_tuple)
+        calibrated_colour = (
+            round(red * calibration_red, 2),
+            round(green * calibration_green, 2),
+            round(blue * calibration_blue, 2)
+        )
+        pihat_iface.set_all_leds([calibrated_colour] * pihat_num_leds)
+
+        print "Showing colour: '{}' with values: {} and calibrated values: {}".format(
+            colour_name, (red, green, blue), calibrated_colour
+        )
+
+        valid_input = False
+        invalid_input_count = 0
+
+        # Grab the input from the user.
+        while not valid_input:
+            user_input = getch().lower()
+            valid_input = True
+
+            if 'q' in user_input:
+                stop_cycle = True
+            elif 'd' in user_input:
+                colour_index = min(colour_index + 1, len(colours) - 1)
+            elif 'a' in user_input:
+                colour_index = max(colour_index - 1, 0)
+            else:
+                invalid_input_count = (invalid_input_count + 1) % 3
+                valid_input = False
+
+                if invalid_input_count == 0:
+                    print_instructions()
+
+    # Unlock the PiHat LEDs API and give access back to the other services.
+    pihat_iface.set_leds_off()
+    pihat_iface.unlock()
+
+    print "That's all folks!"
+    return RC_SUCCESS
+
+
+if __name__ == '__main__':
+    args = docopt.docopt(__doc__)
+    sys.exit(main(args) or RC_SUCCESS)
