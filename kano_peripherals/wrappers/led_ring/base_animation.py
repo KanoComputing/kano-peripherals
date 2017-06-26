@@ -16,6 +16,8 @@ from kano.utils import run_bg
 
 # from kano_peripherals.speaker_leds.driver.high_level import get_speakerleds_interface
 from kano_peripherals.pi_hat.driver.high_level import get_pihat_interface
+# from kano_peripherals.speaker_leds import colours as speaker_led_colours
+from kano_peripherals.pi_hat import colours as pi_hat_colours
 
 
 class BaseAnimation(object):
@@ -30,6 +32,7 @@ class BaseAnimation(object):
 
         self.iface = None
         self.interrupted = False
+        self.colours = None
 
         self.setup_signal_handler()
 
@@ -43,10 +46,12 @@ class BaseAnimation(object):
         """
         # self.iface = get_speakerleds_interface(retry_count=retry_count)
         # if self.iface and self.iface.detect():
+        #     self.colours = speaker_led_colours
         #     return True
 
         self.iface = get_pihat_interface(retry_count=retry_count)
         if self.iface and self.iface.detect():
+            self.colours = pi_hat_colours
             return True
 
         return False

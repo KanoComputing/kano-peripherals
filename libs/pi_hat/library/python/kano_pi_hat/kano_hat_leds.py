@@ -17,7 +17,7 @@ class KanoHatLeds(KanoHat):
     LED_COUNT = 10
     LED_PIN = 18
 
-    def __init__(self, brightness=180):
+    def __init__(self, brightness=150):
         super(KanoHatLeds, self).__init__()
 
         self._leds = neopixel.Adafruit_NeoPixel(

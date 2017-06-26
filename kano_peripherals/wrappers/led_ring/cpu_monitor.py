@@ -23,10 +23,6 @@ from kano.logging import logger
 from kano_peripherals.wrappers.led_ring.base_animation import BaseAnimation
 from kano_peripherals.return_codes import *
 
-# TODO: Move these
-from kano_peripherals.speaker_leds.colours import LED_MAGENTA, LED_RED, \
-    LED_BLACK, LED_KANO_ORANGE
-
 
 class CpuMonitor(BaseAnimation):
     """
@@ -71,7 +67,7 @@ class CpuMonitor(BaseAnimation):
 
         # Setup the animation parameters.
         num_leds = self.iface.get_num_leds()
-        vf = self.constant([LED_KANO_ORANGE for i in range(num_leds)])
+        vf = self.constant([self.colours.LED_KANO_ORANGE for i in range(num_leds)])
         duration = update_rate
         cycles = duration / 2
 
