@@ -1,10 +1,10 @@
-# test_pi_hat.py
+# test_power_hat.py
 #
 # Copyright (C) 2017 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
-# A quick manufacturing test for the Pi Hat to ensure LEDs
-# are all lighting up in red, green, blue.
+# A quick manufacturing test for the Power Hat (CK2 Pro) to check
+# detection and power button presses.
 
 
 import os
@@ -16,35 +16,29 @@ from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
 
 import kano.colours as colours
-
-from kano_peripherals.pi_hat.driver.high_level import get_pihat_interface
-from kano_peripherals.wrappers.led_ring.base_animation import BaseAnimation
-from kano_peripherals.wrappers.led_ring.init_flow import InitFlow
-from kano_peripherals.paths import PI_HAT_OBJECT_PATH, PI_HAT_IFACE, \
-    BUS_NAME as PI_HAT_BUS_NAME
+from kano_peripherals.ck2_pro_hat.driver.high_level import get_ck2_pro_hat_interface
+from kano_peripherals.paths import CK2_PRO_HAT_OBJECT_PATH, CK2_PRO_HAT_IFACE, \
+    BUS_NAME as KANO_BOARDS_BUS_NAME
 
 
 DBUS_MAIN_LOOP = DBusGMainLoop(set_as_default=True)
 
 
-class TestPiHat(unittest.TestCase):
+class TestPowerHat(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        # Stop any possible running animations.
-        BaseAnimation.stop('')
-
         # Get DBus interface to the board and attempt a recovery if it fails.
-        self.iface = get_pihat_interface()
+        self.iface = get_ck2_pro_hat_interface()
         if not self.iface:
             self._attempt_to_recover_daemon()
 
-        self.iface = get_pihat_interface()
+        self.iface = get_ck2_pro_hat_interface()
         if not self.iface:
-            pass  # TODO: Stop here, no point going forward. THIS SHOULD NOT HAPPEN!
+            return  # TODO: Stop here, no point going forward. THIS SHOULD NOT HAPPEN!
 
-        # Lock the board API so nothing can interfere.
-        self.iface.lock(self.iface.get_max_lock_priority())
+        # Enable the power button, we'll be using it later.
+        self.iface.set_power_button_enabled(True)
 
     @classmethod
     def teadDownClass(self):
@@ -53,36 +47,22 @@ class TestPiHat(unittest.TestCase):
 
     # --- Tests -------------------------------------------------------------------------
 
-    def test_pihat_board_detected(self):
-        self.assertTrue(self.iface.detect(), 'Pi Hat board could not be detected!')
-
-    @unittest.skipIf(not get_pihat_interface().detect(), 'Board not detected, skipping')
-    def test_run_rgb_sequence(self):
+    def test_powerhat_board_detected(self):
         header = '\n\n--------------------------------------------------------------------------------------------\
-               -[ CK2 Lite ]- TEST: LED Ring \
+               -[ CK2 Pro ]- TEST: PowerHat detected \
                --------------------------------------------------------------------------------------------'
         header = colours.decorate_with_preset(header, "code")
         print header
 
-        animation = InitFlow()
-        animation.connect()
+        self.assertTrue(
+            self.iface.detect(),
+            'PowerHat board could not be detected!'
+        )
 
-        response = ''
-
-        while response not in ('yes', 'no', 'y', 'n'):
-            animation.start(2.5, 5.0)
-            text = 'Did you see the LEDs light up? Please type "y" or "n". Type "r" to replay. '
-            text = colours.decorate_with_preset(text, "warning")
-            response = raw_input(text).lower().strip()
-
-        saw_animation = (response == 'yes' or response == 'y')
-
-        self.assertTrue(saw_animation, 'Animation could not be observed on Pi Hat!')
-
-    @unittest.skipIf(not get_pihat_interface().detect(), 'Board not detected, skipping')
+    @unittest.skipIf(not get_ck2_pro_hat_interface().detect(), 'Board not detected, skipping')
     def test_power_button_press_detected(self):
         header = '\n\n--------------------------------------------------------------------------------------------\
-               -[ CK2 Lite ]- TEST: Power Button \
+               -[ CK2 Pro ]- TEST: Power Button \
                --------------------------------------------------------------------------------------------'
         header = colours.decorate_with_preset(header, "code")
         print header
@@ -120,8 +100,8 @@ class TestPiHat(unittest.TestCase):
             loop.run()
 
         dbus.SystemBus().add_signal_receiver(
-            button_pressed, 'power_button_pressed', PI_HAT_IFACE,
-            PI_HAT_BUS_NAME, PI_HAT_OBJECT_PATH
+            button_pressed, 'power_button_pressed',
+            CK2_PRO_HAT_IFACE, KANO_BOARDS_BUS_NAME, CK2_PRO_HAT_OBJECT_PATH
         )
 
         start_loop()
