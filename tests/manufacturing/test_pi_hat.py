@@ -26,6 +26,10 @@ from kano_peripherals.paths import PI_HAT_OBJECT_PATH, PI_HAT_IFACE, \
 
 DBUS_MAIN_LOOP = DBusGMainLoop(set_as_default=True)
 
+RED = (0.5, 0.0, 0.0)
+GREEN = (0.0, 0.5, 0.0)
+BLUE = (0.0, 0.0, 0.5)
+
 
 class TestPiHat(unittest.TestCase):
 
@@ -64,16 +68,40 @@ class TestPiHat(unittest.TestCase):
         header = colours.decorate_with_preset(header, "code")
         print header
 
-        animation = InitFlow()
-        animation.connect()
+'''
+        print colours.decorate_with_preset(header, "code")
+
+        def led_animation():
+            time.sleep(1)
+            self.iface.set_all_leds([RED] * self.iface.get_num_leds())
+            time.sleep(1)
+            self.iface.set_all_leds([GREEN] * self.iface.get_num_leds())
+            time.sleep(1)
+            self.iface.set_all_leds([BLUE] * self.iface.get_num_leds())
+            time.sleep(1)
+            self.iface.set_leds_off()
 
         response = ''
+        fail_count = 0
 
-        while response not in ('yes', 'no', 'y', 'n'):
-            animation.start(2.5, 5.0)
-            text = 'Did you see the LEDs light up? Please type "y" or "n". Type "r" to replay. '
+        while response not in ('yes', 'y'):
+            led_animation()
+
+            text = 'Did you see all the LEDs light up? Please type "y" or "n". Type "r" to replay. '
             text = colours.decorate_with_preset(text, "warning")
             response = raw_input(text).lower().strip()
+
+            if response in ('no', 'n'):
+                # Setting LEDs can sometimes fail on the first run, trying again
+                fail_count += 1
+
+                if fail_count > 1:
+                    break
+                else:
+                    print colours.decorate_with_preset(
+                        "Trying again",
+                        "warning"
+                    )
 
         saw_animation = (response == 'yes' or response == 'y')
 
