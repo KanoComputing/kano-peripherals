@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# kano-peripherals.postrm
+#
+# Copyright (C) 2017 Kano Computing Ltd.
+# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU General Public License v2
+#
+# Post remove / update debian package script
+
+
+case "$1" in
+    remove|upgrade)
+        # Disable system systemd services
+        systemctl disable kano-bootup-battery
+        systemctl disable turn-off-hat-leds
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

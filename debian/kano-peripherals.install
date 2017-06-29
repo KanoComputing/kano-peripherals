@@ -1,6 +1,4 @@
-bin/kano-boards-daemon usr/bin/
-bin/kano-speakerleds usr/bin/
-bin/kano-boot-battery usr/bin/
+bin/* usr/bin/
 
 kano_peripherals usr/lib/python2.7/dist-packages/
 assets usr/share/kano-peripherals/

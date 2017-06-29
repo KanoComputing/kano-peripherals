@@ -1,0 +1,20 @@
+# turn-off-pihat-leds.service
+#
+# Copyright (C) 2017 Kano Computing Ltd.
+# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
+#
+# Unit file to turn off the LEDs on Kano hats as soon as possible.
+
+
+[Unit]
+Description=Turn off Kano hat LEDs
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/turn-off-hat-leds
+Restart=no
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target

@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+
+# turn-off-hat-leds
+#
+# Copyright (C) 2017 Kano Computing Ltd.
+# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
+#
+# Script used as early in boot as possible to turn off LEDs on the PiHat
+# and LED Speaker due to manufacturing issues.
+
+
+import sys
+
+
+COLOUR_BLACK = (0, 0, 0)
+
+RC_SUCCESSFUL = 0
+RC_UNEXPECTED_ERROR = 1
+
+
+def turn_off_pihat():
+    try:
+        from kano_pi_hat.kano_hat_leds import KanoHatLeds
+
+        pi_hat = KanoHatLeds()
+        if pi_hat.initialise():
+            return
+
+        if not pi_hat.is_connected():
+            return
+
+        pi_hat.set_all_leds([COLOUR_BLACK] * pi_hat.LED_COUNT)
+
+    except:
+        return RC_UNEXPECTED_ERROR
+
+
+def turn_off_speaker_led():
+    try:
+        from kano_peripherals.speaker_leds.speaker_led import SpeakerLed
+
+        speaker_led = SpeakerLed()
+        if not speaker_led.initialise():
+            return
+
+        if not speaker_led.is_connected():
+            return
+
+        values = [COLOUR_BLACK] * speaker_led.NUM_LEDS
+
+        for idx, val in enumerate(values):
+            successful = speaker_led.set_led(idx, val)
+            if not successful:
+                return
+
+    except:
+        return RC_UNEXPECTED_ERROR
+
+
+def main():
+    pihat_rc = turn_off_pihat()
+    speakerled_rc = turn_off_speaker_led()
+
+    return pihat_rc or speakerled_rc
+
+
+if __name__ == '__main__':
+    sys.exit(main() or RC_SUCCESSFUL)
