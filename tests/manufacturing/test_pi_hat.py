@@ -62,11 +62,11 @@ class TestPiHat(unittest.TestCase):
 
     @unittest.skipIf(not get_pihat_interface().detect(), 'Board not detected, skipping')
     def test_run_rgb_sequence(self):
-        header = '\n\n--------------------------------------------------------------------------------------------\
-               -[ CK2 Lite ]- TEST: LED Ring \
-               --------------------------------------------------------------------------------------------'
-        header = colours.decorate_with_preset(header, "code")
-        print header
+        header = '''
+--------------------------------------------------------------------------------
+|                        -[ CK2 Lite ]- TEST: LED Ring                         |
+--------------------------------------------------------------------------------
+
 
 '''
         print colours.decorate_with_preset(header, "code")
@@ -109,11 +109,14 @@ class TestPiHat(unittest.TestCase):
 
     @unittest.skipIf(not get_pihat_interface().detect(), 'Board not detected, skipping')
     def test_power_button_press_detected(self):
-        header = '\n\n--------------------------------------------------------------------------------------------\
-               -[ CK2 Lite ]- TEST: Power Button \
-               --------------------------------------------------------------------------------------------'
-        header = colours.decorate_with_preset(header, "code")
-        print header
+        header = '''
+--------------------------------------------------------------------------------
+|                      -[ CK2 Lite ]- TEST: Power Button                       |
+--------------------------------------------------------------------------------
+
+
+'''
+        print colours.decorate_with_preset(header, "code")
 
         loop = GLib.MainLoop()
         timeout = 30

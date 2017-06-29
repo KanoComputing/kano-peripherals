@@ -48,11 +48,14 @@ class TestPowerHat(unittest.TestCase):
     # --- Tests -------------------------------------------------------------------------
 
     def test_powerhat_board_detected(self):
-        header = '\n\n--------------------------------------------------------------------------------------------\
-               -[ CK2 Pro ]- TEST: PowerHat detected \
-               --------------------------------------------------------------------------------------------'
-        header = colours.decorate_with_preset(header, "code")
-        print header
+        header = '''
+--------------------------------------------------------------------------------
+|                    -[ CK2 Pro ]- TEST: PowerHat detected                     |
+--------------------------------------------------------------------------------
+
+
+'''
+        print colours.decorate_with_preset(header, "code")
 
         self.assertTrue(
             self.iface.detect(),
@@ -61,11 +64,14 @@ class TestPowerHat(unittest.TestCase):
 
     @unittest.skipIf(not get_ck2_pro_hat_interface().detect(), 'Board not detected, skipping')
     def test_power_button_press_detected(self):
-        header = '\n\n--------------------------------------------------------------------------------------------\
-               -[ CK2 Pro ]- TEST: Power Button \
-               --------------------------------------------------------------------------------------------'
-        header = colours.decorate_with_preset(header, "code")
-        print header
+        header = '''
+--------------------------------------------------------------------------------
+|                       -[ CK2 Pro ]- TEST: Power Button                       |
+--------------------------------------------------------------------------------
+
+
+'''
+        print colours.decorate_with_preset(header, "code")
 
         loop = GLib.MainLoop()
         timeout = 30
