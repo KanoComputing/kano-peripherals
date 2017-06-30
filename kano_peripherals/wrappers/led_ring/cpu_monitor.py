@@ -89,6 +89,8 @@ class CpuMonitor(BaseAnimation):
             else:
                 time.sleep(duration)
 
+        # The API will be unlocked in the signal handler routine.
+
     @staticmethod
     def stop():
         """

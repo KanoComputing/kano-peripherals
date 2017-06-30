@@ -12,10 +12,6 @@ from kano.logging import logger
 from kano_peripherals.wrappers.led_ring.base_animation import BaseAnimation
 from kano_peripherals.return_codes import *
 
-# TODO: Move these
-from kano_peripherals.speaker_leds.colours import LED_MAGENTA, LED_RED, \
-    LED_BLACK, LED_KANO_ORANGE
-
 
 class InitFlow(BaseAnimation):
     """
@@ -55,6 +51,13 @@ class InitFlow(BaseAnimation):
         vf = self.rotate(self.colour_wheel, cycles)
         vf2 = self.pulse(vf)
         self.animate(vf2, duration, 1.0, update_rate=0.005)
+
+        # Make sure to turn off the LEDs at the end and unlock the API.
+        self.iface.set_leds_off()
+        successful = self.iface.unlock()
+        if not successful:
+            logger.error('LED Ring: InitFlow: Could not unlock dbus interface!')
+            return RC_FAILED_UNLOCKING_API
 
     @staticmethod
     def stop():

@@ -55,6 +55,13 @@ class Notification(BaseAnimation):
         vf = self.pulse(self.constant(colours1), self.constant(colours2))
         self.animate(vf, 60 * 60, 60 * 60 / 2, update_rate=0.005)
 
+        # Make sure to turn off the LEDs at the end and unlock the API.
+        self.iface.set_leds_off()
+        successful = self.iface.unlock()
+        if not successful:
+            logger.error('LED Ring: Notification: Could not unlock dbus interface!')
+            return RC_FAILED_UNLOCKING_API
+
     @staticmethod
     def stop():
         """
