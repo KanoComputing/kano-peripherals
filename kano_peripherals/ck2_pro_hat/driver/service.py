@@ -291,5 +291,8 @@ class CK2ProHatService(BaseDeviceService):
                 ' change callback1 with rc {}'.format(rc)
             )
 
+        # Fire off an update to ensure that the state is initialised correctly
+        battery_changed_cb()
+
         while True:
             time.sleep(1)
