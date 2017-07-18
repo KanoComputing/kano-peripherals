@@ -14,7 +14,7 @@ import dbus.exceptions
 from kano.logging import logger
 
 from kano_peripherals.paths import BUS_NAME, SERVICE_MANAGER_OBJECT_PATH, \
-    SERVICE_MANAGER_IFACE
+    SERVICE_API_IFACE
 
 
 def get_service_manager_interface(retry_count=5, retry_time_sec=1):
@@ -30,7 +30,7 @@ def get_service_manager_interface(retry_count=5, retry_time_sec=1):
     """
     return get_service_interface(
         SERVICE_MANAGER_OBJECT_PATH,
-        SERVICE_MANAGER_IFACE,
+        SERVICE_API_IFACE,
         retry_count=retry_count,
         retry_time_sec=retry_time_sec
     )
@@ -63,29 +63,26 @@ def get_service_interface(object_path, object_iface, retry_count=5, retry_time_s
 
             # Test if the service is online with a simple method call. If the service
             # replies back and the method returns, it's available.
-            iface.hello_world()
+            iface.is_iface_valid()
             successful = True
             break
 
         except dbus.exceptions.DBusException, dbus.exceptions.UnknownMethodException:
+            # The service could not be reached with the interface.
             if retry_count:
                 time.sleep(retry_time_sec)
-            logger.warn(
-                'utils: get_service_interface: Retring for {}, got exception:\n{}'
-                .format(object_iface, traceback.format_exc())
-            )
             continue
         except Exception:
             logger.error(
-                'utils: get_service_interface: For {}, unexpected error occured:\n{}'
+                'utils: get_service_interface: For "{}", unexpected error occured:\n{}'
                 .format(traceback.format_exc())
             )
             break
 
     if not iface or not successful:
-        logger.warn(
-            'DBus iface not found for {}. Is kano-boards-daemon running?'
-            .format(object_iface)
+        logger.debug(
+            'DBus iface not available for {}. Is kano-boards-daemon running and is the'
+            ' board plugged in?'.format(object_path)
         )
         return None
 

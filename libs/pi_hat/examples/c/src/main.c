@@ -13,40 +13,51 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "kano_hat.h"
+#include "setup.h"
+#include "ck2_pro_hat/ck2_pro_hat.h"
 
 
 void power_button_pressed(void)
 {
-    printf("Power button pressed\n");
+    fprintf(stderr, "Power button pressed [ 1 ]\n");
 }
 
-
-void hat_plugged_in(void)
+void power_button_pressed2(void)
 {
-    printf("Hat plugged in\n");
+    fprintf(stderr, "Power button pressed [ 2 ]\n");
 }
 
-void hat_unplugged(void)
+void low_battery(void)
 {
-    printf("Hat unplugged\n");
+    fprintf(stderr, "Low battery [ 1 ]\n");
 }
 
+void low_battery2(void)
+{
+    fprintf(stderr, "Low battery [ 2 ]\n");
+}
 
 
 int main(int argc, char **argv)
 {
-    initialise();
+    initialise_ck2_pro();
+
+    if (is_ck2_pro_connected()) {
+        fprintf(stderr, "PowerHat is connected\n");
+    } else {
+        fprintf(stderr, "PowerHat is not connected\n");
+    }
 
     register_power_off_cb(&power_button_pressed);
-    register_hat_attached_cb(&hat_plugged_in);
-    register_hat_detached_cb(&hat_unplugged);
+    register_battery_level_changed_cb(&low_battery);
+    register_battery_level_changed_cb(&low_battery2);
 
     for (;;) {
         sleep(10);
     }
 
     clean_up();
+    clean_up_ck2_pro();
 
     return 0;
 }

@@ -18,7 +18,7 @@ from kano_pi_hat.kano_hat import KanoHat
 from kano_peripherals.pi_hat.driver.high_level import get_pihat_interface
 from kano_peripherals.wrappers.led_ring.base_animation import BaseAnimation
 from kano_peripherals.wrappers.led_ring.init_flow import InitFlow
-from kano_peripherals.paths import PI_HAT_OBJECT_PATH, PI_HAT_IFACE, \
+from kano_peripherals.paths import PI_HAT_OBJECT_PATH, SERVICE_API_IFACE, \
     BUS_NAME as PI_HAT_BUS_NAME
 
 from boot_test import *
@@ -127,7 +127,7 @@ class TestPiHat(BootTest):
 
 
         dbus.SystemBus().add_signal_receiver(
-            button_pressed, 'power_button_pressed', PI_HAT_IFACE,
+            button_pressed, 'power_button_pressed', SERVICE_API_IFACE,
             PI_HAT_BUS_NAME, PI_HAT_OBJECT_PATH
         )
 

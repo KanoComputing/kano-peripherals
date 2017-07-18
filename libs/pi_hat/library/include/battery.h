@@ -18,4 +18,4 @@
 int initialise_battery();
 int clean_up_battery();
 bool is_battery_low(void);
-int register_battery_level_changed_cb(void cb(void));
+int register_battery_level_changed_cb(void (* const cb)(void));

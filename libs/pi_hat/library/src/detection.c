@@ -53,6 +53,7 @@ union detection_pin_state read_detection_pins(void)
     state.pin.pin_3 = digitalRead(DETECTION_PINS.pin_3);
     state.pin.pin_4 = digitalRead(DETECTION_PINS.pin_4);
     state.pin.pin_5 = digitalRead(DETECTION_PINS.pin_5);
+    state.pin.__unused = 0;
 
     return state;
 }

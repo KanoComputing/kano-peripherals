@@ -20,8 +20,10 @@
 
 int initialise_ck2_pro(void)
 {
-    initialise();
-    initialise_detection();
+    const int rc = initialise();
+    if (rc != SUCCESS) {
+        return rc;
+    }
 
     if (!is_ck2_pro_connected()) {
         return E_HAT_NOT_ATTACHED;
@@ -37,6 +39,7 @@ int initialise_ck2_pro(void)
 void clean_up_ck2_pro(void)
 {
     clean_up_battery();
+    clean_up();
 }
 
 

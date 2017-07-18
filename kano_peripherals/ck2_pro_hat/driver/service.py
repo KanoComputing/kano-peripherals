@@ -10,20 +10,23 @@
 # shutdown-menu dialog when the button on the board is pressed.
 
 
-import os
 import time
 import dbus
 import dbus.service
 from multiprocessing import Process, Value, Event
 
+from gi.repository import GObject
+
+from kano.logging import logger
 from kano.utils import run_bg
 
+from kano_peripherals.base_device_service import BaseDeviceService
 from kano_peripherals.ck2_pro_hat.driver.battery_notify_thread import BatteryNotifyThread
-from kano_peripherals.paths import CK2_PRO_HAT_OBJECT_PATH, CK2_PRO_HAT_IFACE
+from kano_peripherals.paths import CK2_PRO_HAT_OBJECT_PATH, SERVICE_API_IFACE
 from kano_pi_hat.ck2_pro_hat import CK2ProHat
 
 
-class CK2ProHatService(dbus.service.Object):
+class CK2ProHatService(BaseDeviceService):
     """
     This is a DBus Service provided by kano-boards-daemon.
 
@@ -33,9 +36,17 @@ class CK2ProHatService(dbus.service.Object):
     Requires sudo.
     """
 
+    # The poll rate for checking if the board is still plugged in.
+    DETECT_THREAD_POLL_RATE = 5 * 1000  # milliseconds
+
     def __init__(self, bus_name):
         """
         Constructor for the CK2ProHatService.
+
+        Given that services should be ready to use when they come online, it also
+        performs initialisation and starts subprocesses. It also emits the
+        'device_connected' DBus signal as the service is expected to be brought
+        up only when the device was discovered.
 
         Args:
             bus_name - A dbus.service.BusName object to configure the base address.
@@ -43,7 +54,7 @@ class CK2ProHatService(dbus.service.Object):
         super(CK2ProHatService, self).__init__(bus_name, CK2_PRO_HAT_OBJECT_PATH)
 
         self.ck2_pro_hat = CK2ProHat()
-        self.setup()
+        self.ck2_pro_hat.initialise()
 
         self.is_power_button_enabled = Value('b', False)
         self.notif_trigger = Event()
@@ -62,57 +73,84 @@ class CK2ProHatService(dbus.service.Object):
         )
         self.battery_notif_thread.start()
 
-    def stop(self):
+        # Start the detection polling routine.
+        GObject.threads_init()
+        self.detect_thread_id = GObject.timeout_add(
+            self.DETECT_THREAD_POLL_RATE, self._detect_thread
+        )
+
+        self.device_connected(self.get_object_path())
+
+    def clean_up(self):
         """
         Stop all running (sub)processes and clean up before process termination.
         """
+        GObject.source_remove(self.detect_thread_id)
+
         self.interrupt_thread.terminate()
         self.battery_notif_thread.join(1.5)
 
     # --- Board Detection ---------------------------------------------------------------
 
-    @dbus.service.method(CK2_PRO_HAT_IFACE, out_signature='')
-    def setup(self):
+    @staticmethod
+    def quick_detect():
         """
-        Initialise the PiHat board libraries.
+        A device detection static method complete with library initialisation.
+        Inherited and implemented from BaseDeviceService (look there for more info).
 
-        This is called on startup and does not require to be called manually.
+        Returns:
+            connected - bool whether or not the device is plugged in
         """
-        self.ck2_pro_hat.initialise()
 
-    @dbus.service.method(CK2_PRO_HAT_IFACE, in_signature='', out_signature='b')
+        # TODO: Check if the service is online, if true, return true and log an error.
+
+        ck2_pro_hat = CK2ProHat()
+
+        if ck2_pro_hat.initialise():
+            return False
+
+        connected = ck2_pro_hat.is_connected()
+        ck2_pro_hat.clean_up()
+
+        return connected
+
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='', out_signature='b')
     def detect(self):
         """
-        Detect whether the PiHat board is connected.
+        Detect whether the PowerHat board is connected.
 
         Returns:
             connected - bool whether the board is plugged in or not.
         """
         return self.ck2_pro_hat.is_connected()
 
-    @dbus.service.method(CK2_PRO_HAT_IFACE, in_signature='', out_signature='b')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='', out_signature='b')
     def is_plugged(self):
-        """ Same as detect. """
+        """
+        TODO: Same as detect, remove.
+        """
         return self.ck2_pro_hat.is_connected()
 
-    # --- DBus Interface Testing --------------------------------------------------------
-
-    @dbus.service.method(CK2_PRO_HAT_IFACE, in_signature='', out_signature='b')
-    def hello_world(self):
+    def _detect_thread(self):
         """
-        Use this method to check if the interface to the service
-        can reach this object.
+        Poll the detection for PowerHat to know when it is unplugged.
 
-        Required for accurate detection of interface creation.
+        When the PowerHat is unplugged, the 'device_disconnected' DBus signal is emitted.
+        This method is run in a separate thread with GObject.
 
-        FIXME: Should be renamed to better reflect its purpose as an essential
-               function rather than what appears to be a test function.
+        TODO: The library for this board uses WiringPi which can do hardware interrupts.
+              We could remove this polling thread by having the hardware notify us.
         """
-        return True
+        detected = self.detect()
+
+        if not detected:
+            self.device_disconnected(self.get_object_path())
+
+        return detected
 
     # --- Battery Level -----------------------------------------------------------------
 
-    @dbus.service.method(CK2_PRO_HAT_IFACE, in_signature='', out_signature='b')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='', out_signature='b')
     def is_battery_low(self):
         """
         Checks the current battery level
@@ -123,7 +161,7 @@ class CK2ProHatService(dbus.service.Object):
         """
         return self.ck2_pro_hat.is_battery_low()
 
-    @dbus.service.method(CK2_PRO_HAT_IFACE, in_signature='', out_signature='i')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='', out_signature='i')
     def get_battery_level(self):
         """
         Checks the current battery level.
@@ -140,7 +178,7 @@ class CK2ProHatService(dbus.service.Object):
         else:
             return 100
 
-    @dbus.service.signal(CK2_PRO_HAT_IFACE, signature='i')
+    @dbus.service.signal(SERVICE_API_IFACE, signature='i')
     def power_level_changed(self, level):
         """
         Signals that the battery level has changed, currently either from high
@@ -156,7 +194,18 @@ class CK2ProHatService(dbus.service.Object):
 
     # --- Power Button ------------------------------------------------------------------
 
-    @dbus.service.method(CK2_PRO_HAT_IFACE, in_signature='b', out_signature='')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='', out_signature='b')
+    def is_power_button_enabled(self):
+        """
+        Check if the power button was enabled to the Interrupt Service Routine.
+        Currently, this callback pops up the shutdown menu.
+
+        Returns:
+            enabled - boolean whether the button ISR will be run
+        """
+        return self.is_power_button_enabled.value
+
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='b', out_signature='')
     def set_power_button_enabled(self, enabled):
         """
         Enable or disable the power button from performing
@@ -167,7 +216,7 @@ class CK2ProHatService(dbus.service.Object):
         """
         self.is_power_button_enabled.value = enabled
 
-    @dbus.service.signal(CK2_PRO_HAT_IFACE, signature='')
+    @dbus.service.signal(SERVICE_API_IFACE, signature='')
     def power_button_pressed(self):
         pass
 
@@ -199,21 +248,17 @@ class CK2ProHatService(dbus.service.Object):
             if time.time() - startup_timestamp < 20:
                 return
 
+            self.power_button_pressed()
+
             # TODO: The env vars bellow are a workaround the fact that Qt5 apps are
             #   stacking on top of each other creating multiple mice, events propagating
             #   below, etc. This hack still leaves a frozen mouse on the screen.
-            self.power_button_pressed()
             run_bg(
                 'systemd-run'
                 ' --setenv=QT_QPA_EGLFS_NO_LIBINPUT=1'
                 ' --setenv=QT_QPA_EVDEV_MOUSE_PARAMETERS=grab=1'
                 ' /usr/bin/shutdown-menu'
             )
-
-        startup_timestamp = time.time()
-
-        kano_hat = CK2ProHat()
-        kano_hat.initialise()
 
         def battery_changed_cb():
             '''
@@ -223,8 +268,28 @@ class CK2ProHatService(dbus.service.Object):
             self.power_level_changed(self.get_battery_level())
             notif_trigger.set()
 
-        kano_hat.register_power_off_cb(_launch_shutdown_menu)
-        kano_hat.register_battery_level_changed_cb(battery_changed_cb)
+        startup_timestamp = time.time()
+
+        ck2_pro_hat = CK2ProHat()
+
+        rc = ck2_pro_hat.initialise()
+        if rc:
+            logger.error(
+                'CK2ProHatService: _interrupt_thread: Failed to initialise lib'
+                ' with rc {}'.format(rc)
+            )
+        rc = ck2_pro_hat.register_power_off_cb(_launch_shutdown_menu)
+        if rc:
+            logger.error(
+                'CK2ProHatService: _interrupt_thread: Failed to register power off'
+                ' callback1 with rc {}'.format(rc)
+            )
+        rc = ck2_pro_hat.register_battery_level_changed_cb(battery_changed_cb)
+        if rc:
+            logger.error(
+                'CK2ProHatService: _interrupt_thread: Failed to register battery level'
+                ' change callback1 with rc {}'.format(rc)
+            )
 
         while True:
             time.sleep(1)

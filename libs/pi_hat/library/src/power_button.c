@@ -53,11 +53,8 @@ void press(void)
 }
 
 
-int register_power_off_cb(void cb(void))
+int register_power_off_cb(void (* const cb)(void))
 {
-    if (initialise() != SUCCESS)
-        return E_FAIL;
-
     add_cb(power_button_cbs, cb);
     wiringPiISR(POWER_PIN, INT_EDGE_RISING, &press);
 

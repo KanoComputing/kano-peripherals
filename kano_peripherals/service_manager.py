@@ -5,9 +5,15 @@
 #
 # A DBus service manager responsible for bringing up and taking down other services.
 #
-# At startup it will instantiate all given DBus services and once the stop() method
-# is called it will ask all running services to clean up and finally quit the
-# daemon main loop.
+# The current design specifies that at startup the service will instantiate the
+# ServiceManager to look for peripherals. Once a device was found, device
+# discovery is stopped and the corresponding service for the device is started.
+#
+# These are mutually exclusive simply because we do not currently have peripherals
+# that can be connected at the same time as others. This should change when we do.
+#
+# Once the quit() method is called the service will ask all running services to clean
+# up and finally quit the daemon main loop, shutting down completely.
 
 
 import dbus
@@ -18,10 +24,17 @@ from gi.repository import GObject
 
 from kano.logging import logger
 
-from kano_peripherals.paths import SERVICE_MANAGER_OBJECT_PATH, SERVICE_MANAGER_IFACE
+from kano_peripherals.base_dbus_service import BaseDbusService
+from kano_peripherals.speaker_leds.driver.service import SpeakerLEDsService
+from kano_peripherals.pi_hat.driver.service import PiHatService
+from kano_peripherals.ck2_pro_hat.driver.service import CK2ProHatService
+from kano_peripherals.device_discovery_service import DeviceDiscoveryService
+from kano_peripherals.paths import SERVICE_MANAGER_OBJECT_PATH, SERVICE_API_IFACE, \
+    DEVICE_DISCOVERY_OBJECT_PATH, SPEAKER_LEDS_OBJECT_PATH, PI_HAT_OBJECT_PATH, \
+    CK2_PRO_HAT_OBJECT_PATH, BUS_NAME
 
 
-class ServiceManager(dbus.service.Object):
+class ServiceManager(BaseDbusService):
     """
     This is a DBus Service provided by kano-boards-daemon.
 
@@ -31,62 +44,170 @@ class ServiceManager(dbus.service.Object):
     Does not require sudo.
     """
 
-    def __init__(self, bus_name, mainloop, services):
+    def __init__(self, bus_name, mainloop):
         """
         Constructor for the ServiceManager.
 
         Args:
             bus_name - A dbus.service.BusName object to configure the base address.
             mainloop - A Glib.MainLoop object to control the daemon life cycle.
-            services - A list of dbus.service.Object to instantiate and run.
         """
         super(ServiceManager, self).__init__(bus_name, SERVICE_MANAGER_OBJECT_PATH)
 
+        self.bus_name = bus_name
         self.mainloop = mainloop
-        self.services = services
 
-        self.running_services = list()
+        # All services that need to be started and stopped by this daemon.
+        # Add more here as needed.
+        self.services = {
+            DEVICE_DISCOVERY_OBJECT_PATH: DeviceDiscoveryService,
+            SPEAKER_LEDS_OBJECT_PATH: SpeakerLEDsService,
+            PI_HAT_OBJECT_PATH: PiHatService,
+            CK2_PRO_HAT_OBJECT_PATH: CK2ProHatService
+        }
+        self.running_services = dict()
 
-        # Bring up all services given. TODO: Split up detection routines from their APIs.
-        for Service in self.services:
-            try:
-                service_instance = Service(bus_name)
-                self.running_services.append(service_instance)
+        # Start the DeviceDiscoveryService to look for devices.
+        if not self._start_service(DEVICE_DISCOVERY_OBJECT_PATH):
+            return
 
-            except dbus.exceptions.NameExistsException as e:
-                logger.warn(
-                    'Could not reserve the SystemBus name, most likely another instance'
-                    ' of kano-boards-daemon already exists.\n{}'.format(e)
-                )
-            except Exception as e:
-                logger.error(
-                    'Unexpected error when starting the services.\n{}'
-                    .format(traceback.format_exc())
-                )
+        self.connection.add_signal_receiver(
+            self._on_device_discovered, 'device_discovered',
+            SERVICE_API_IFACE, BUS_NAME, DEVICE_DISCOVERY_OBJECT_PATH
+        )
+
+    def _on_device_discovered(self, service_object_path):
+        """
+        Signal handler for DeviceDiscoveryService's device_discovered signal.
+
+        Stops the DeviceDiscoveryService and brings up the service for the device
+        just found. Mutually exclusive only because we don't have devices that can
+        be plugged simultaneously currently - change as needed.
+        """
+
+        # Stop the DeviceDiscoveryService.
+        if not self._stop_service(DEVICE_DISCOVERY_OBJECT_PATH):
+            return
+
+        self.connection.remove_signal_receiver(
+            self._on_device_discovered, 'device_discovered',
+            SERVICE_API_IFACE, BUS_NAME, DEVICE_DISCOVERY_OBJECT_PATH
+        )
+
+        # Start the service for the board that was just detected.
+        if not self._start_service(service_object_path):
+            return
+
+        self.connection.add_signal_receiver(
+            self._on_device_disconnected, 'device_disconnected',
+            SERVICE_API_IFACE, BUS_NAME, service_object_path
+        )
+
+    def _on_device_disconnected(self, service_object_path):
+        """
+        Signal handler for the device currently plugged device_disconnected signal.
+
+        Stops the service for the device and starts the DeviceDiscoveryService.
+        """
+
+        # Stop the service for the device that was just disconnected.
+        if not self._stop_service(service_object_path):
+            return
+
+        self.connection.remove_signal_receiver(
+            self._on_device_disconnected, 'device_disconnected',
+            SERVICE_API_IFACE, BUS_NAME, service_object_path
+        )
+
+        # Start the DeviceDiscoveryService to look for devices again.
+        if not self._start_service(DEVICE_DISCOVERY_OBJECT_PATH):
+            return
+
+        self.connection.add_signal_receiver(
+            self._on_device_discovered, 'device_discovered',
+            SERVICE_API_IFACE, BUS_NAME, DEVICE_DISCOVERY_OBJECT_PATH
+        )
 
     # --- Service Management Methods ----------------------------------------------------
 
-    @dbus.service.method(SERVICE_MANAGER_IFACE, out_signature='')
-    def stop(self):
+    @dbus.service.method(SERVICE_API_IFACE, out_signature='')
+    def quit(self):
         """
         Stop all active services and terminate the daemon.
 
         After this method returns, some processes will still be running,
         but are guaranteed to terminate shortly (~1sec).
         """
-        for service in self.running_services:
-            service.stop()
+        for service_instance in self.running_services.itervalues():
+            service_instance.stop()
 
         # Exit the mainloop slightly later, allow the method to return
         # and reply to the caller.
         GObject.idle_add(self.mainloop.quit)
+        self.stop()
 
-    # --- DBus Interface Testing --------------------------------------------------------
+    # --- Private Helpers ---------------------------------------------------------------
 
-    @dbus.service.method(SERVICE_MANAGER_IFACE, in_signature='', out_signature='b')
-    def hello_world(self):
+    def _start_service(self, service_object_path):
         """
-        Use this method to check if the interface to the service
-        can reach this object.
+        Helper to start a D-Bus service based on its object_path.
+        The implementation is specific to this class service base classes.
+
+        Returns:
+            successful - bool whether or not the operation succeeded
         """
+        if service_object_path not in self.services:
+            logger.error(
+                'ServiceManager: _start_service: No entry for {} in'
+                ' self.services!'.format(service_object_path)
+            )
+            return False
+
+        try:
+            Service = self.services[service_object_path]
+            service_instance = Service(self.bus_name)
+            self.running_services[service_object_path] = service_instance
+
+        except dbus.exceptions.NameExistsException as e:
+            logger.warn(
+                'Could not reserve the SystemBus name, most likely another instance'
+                ' of kano-boards-daemon already exists.\n{}'.format(e)
+            )
+            return False
+        except Exception as e:
+            logger.error(
+                'Unexpected error when starting the services.\n{}'
+                .format(traceback.format_exc())
+            )
+            return False
+
+        return True
+
+    def _stop_service(self, service_object_path):
+        """
+        Helper to stop a D-Bus service based on its object_path.
+        The implementation is specific to this class service base classes.
+
+        Returns:
+            successful - bool whether or not the operation succeeded
+        """
+        if service_object_path not in self.running_services:
+            logger.error(
+                'ServiceManager: _stop_service: No entry for {} in'
+                ' self.running_services!'.format(service_object_path)
+            )
+            return False
+
+        service_instance = self.running_services[service_object_path]
+
+        if not service_instance:
+            logger.error(
+                'ServiceManager: _stop_service: service_instance is None'
+                ' for service_object_path {}'.format(service_object_path)
+            )
+            return False
+
+        service_instance.stop()
+        del self.running_services[service_object_path]
+
         return True

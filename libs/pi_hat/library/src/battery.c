@@ -75,12 +75,10 @@ void battery_level_changed(void)
 }
 
 
-int register_battery_level_changed_cb(void cb(void))
+int register_battery_level_changed_cb(void (* const cb)(void))
 {
-    if (initialise() != SUCCESS)
-        return E_FAIL;
-
     add_cb(battery_level_changed_cbs, cb);
     wiringPiISR(LOW_BATTERY_PIN, INT_EDGE_BOTH, &battery_level_changed);
+
     return 0;
 }

@@ -14,22 +14,23 @@ from kano_pi_hat.lib import LIB
 
 
 class KanoHat(object):
+
     def __init__(self):
         super(KanoHat, self).__init__()
 
-    @staticmethod
-    def initialise():
-        LIB.initialise_ck2_lite()
+        self.callbacks = list()
 
-    @staticmethod
-    def clean_up():
+    def initialise(self):
+        return LIB.initialise_ck2_lite()
+
+    def clean_up(self):
         LIB.clean_up_ck2_lite()
+        del self.callbacks[:]
 
-    @staticmethod
-    def is_connected():
+    def is_connected(self):
         return LIB.is_ck2_lite_connected() == 1
 
-    @staticmethod
-    def register_power_off_cb(power_off_fn):
+    def register_power_off_cb(self, power_off_fn):
         c_power_off_fn = ctypes.CFUNCTYPE(restype=None)(power_off_fn)
-        LIB.register_power_off_cb(c_power_off_fn)
+        self.callbacks.append(c_power_off_fn)
+        return LIB.register_power_off_cb(c_power_off_fn)

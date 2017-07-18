@@ -13,7 +13,7 @@ import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
 
-from kano_peripherals.paths import PI_HAT_OBJECT_PATH, PI_HAT_IFACE, \
+from kano_peripherals.paths import PI_HAT_OBJECT_PATH, SERVICE_API_IFACE, \
     BUS_NAME as PI_HAT_BUS_NAME
 
 
@@ -33,7 +33,7 @@ if __name__ == '__main__':
         Signal: power_button_pressed
     '''
     dbus.SystemBus().add_signal_receiver(
-        power_pressed_cb, 'power_button_pressed', PI_HAT_IFACE,
+        power_pressed_cb, 'power_button_pressed', SERVICE_API_IFACE,
         PI_HAT_BUS_NAME, PI_HAT_OBJECT_PATH
     )
 

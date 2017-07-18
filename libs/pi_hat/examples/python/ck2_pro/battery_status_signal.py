@@ -14,7 +14,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
 
 import paths
-from kano_peripherals.paths import CK2_PRO_HAT_OBJECT_PATH, CK2_PRO_HAT_IFACE, \
+from kano_peripherals.paths import CK2_PRO_HAT_OBJECT_PATH, SERVICE_API_IFACE, \
     BUS_NAME as CK2_PRO_HAT_BUS_NAME
 
 
@@ -34,7 +34,7 @@ if __name__ == '__main__':
         Signal: power_button_pressed
     '''
     dbus.SystemBus().add_signal_receiver(
-        battery_changed_cb, 'power_level_changed', CK2_PRO_HAT_IFACE,
+        battery_changed_cb, 'power_level_changed', SERVICE_API_IFACE,
         CK2_PRO_HAT_BUS_NAME, CK2_PRO_HAT_OBJECT_PATH
     )
 

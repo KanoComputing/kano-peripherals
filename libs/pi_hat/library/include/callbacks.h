@@ -23,10 +23,9 @@ typedef struct callback {
 int new_cb(struct callback ** const cb);
 int new_cb_list(callback_list ** const cb_list);
 int free_cb_list(callback_list ** const cb_list);
-int add_cb(callback_list * const cb_list, void (* const cb)());
+int add_cb(callback_list * cb_list, void (* const cb)(void));
 int slice_cb(struct callback *const prior, struct callback *const next);
 int rm_cb(callback_list **const cb_list, void (*const cb)());
 int dispatch_cbs(const callback_list * const cb_list);
-
 
 #endif

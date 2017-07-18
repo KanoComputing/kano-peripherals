@@ -54,7 +54,7 @@ int free_cb_list(callback_list ** const cb_list)
 }
 
 
-int add_cb(callback_list *cb_list, void (*const cb)())
+int add_cb(callback_list *cb_list, void (* const cb)(void))
 {
     struct callback *current_cb = cb_list;
 
@@ -65,8 +65,8 @@ int add_cb(callback_list *cb_list, void (*const cb)())
         current_cb = current_cb->next_cb;
     }
 
-    new_cb(&cb_list->next_cb);
-    cb_list->next_cb->cb = cb;
+    new_cb(&current_cb->next_cb);
+    current_cb->next_cb->cb = cb;
 }
 
 
@@ -121,8 +121,9 @@ int dispatch_cbs(const callback_list * const cb_list)
     if (cb_list == NULL)
         return;
 
-    if (cb_list->cb != NULL)
+    if (cb_list->cb != NULL) {
         cb_list->cb();
+    }
 
     dispatch_cbs(cb_list->next_cb);
 }

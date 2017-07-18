@@ -51,9 +51,6 @@ if __name__ == '__main__' and __package__ is None:
 from kano.logging import logger
 
 from kano_peripherals.service_manager import ServiceManager
-# from kano_peripherals.speaker_leds.driver.service import SpeakerLEDsService
-from kano_peripherals.pi_hat.driver.service import PiHatService
-from kano_peripherals.ck2_pro_hat.driver.service import CK2ProHatService
 from kano_peripherals.utils import get_service_manager_interface
 from kano_peripherals.paths import BUS_NAME
 
@@ -91,20 +88,13 @@ def main(args):
             # Reserving the bus name, other instances of kano-boards-daemon will fail.
             bus_name = dbus.service.BusName(BUS_NAME, bus=dbus.SystemBus(), do_not_queue=True)
 
-            # Starting available D-Bus services, add more here.
-            service_manager = ServiceManager(
-                bus_name,
-                loop,
-                services=[
-                    # SpeakerLEDsService,  # Disabled.
-                    PiHatService,
-                    CK2ProHatService
-                ]
-            )
+            # Starting the service manangement - add more services there.
+            service_manager = ServiceManager(bus_name, loop)
+
         except dbus.exceptions.NameExistsException as e:
             logger.warn(
-                'Could not reserve the SystemBus name, most likely another instance'
-                ' of kano-boards-daemon already exists.\n{}'.format(e)
+                'Could not reserve the SystemBus name, most likely due to another'
+                '  instance of kano-boards-daemon running.\n{}'.format(e)
             )
             return RC_SECOND_INSTANCE
 
@@ -122,9 +112,9 @@ def main(args):
 
         service_manager_iface = get_service_manager_interface(retry_count=0)
         if service_manager_iface:
-            service_manager_iface.stop()
+            service_manager_iface.quit()
 
-            # The stop() above is async. Wait for it to cleanup all processes.
+            # The method above is async. Wait for it to cleanup all processes.
             time.sleep(1)
         else:
             logger.error('Could not stop the daemon safely!')

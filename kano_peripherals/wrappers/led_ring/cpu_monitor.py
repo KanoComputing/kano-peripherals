@@ -71,7 +71,7 @@ class CpuMonitor(BaseAnimation):
         duration = update_rate
         cycles = duration / 2
 
-        # Run the animation loop/
+        # Run the animation loop
         while not self.interrupted:
             if self.iface.is_plugged():
 

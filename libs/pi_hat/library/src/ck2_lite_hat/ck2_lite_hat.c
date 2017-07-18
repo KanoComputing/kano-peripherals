@@ -22,8 +22,10 @@
 
 int initialise_ck2_lite(void)
 {
-    initialise();
-    initialise_detection();
+    const int rc = initialise();
+    if (rc != SUCCESS) {
+        return rc;
+    }
 
     /**
      * The sound module was disabled at boot to avoid PiHat drivers from getting
@@ -45,6 +47,7 @@ int initialise_ck2_lite(void)
 
 void clean_up_ck2_lite(void)
 {
+    clean_up();
 }
 
 

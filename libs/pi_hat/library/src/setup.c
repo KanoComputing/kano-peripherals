@@ -10,9 +10,11 @@
  */
 
 
-#include <wiringPi.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <stdio.h>
+
+#include <wiringPi.h>
 
 #include "setup.h"
 #include "err.h"
@@ -42,9 +44,7 @@ int initialise(void)
         is_setup = true;
     }
 
-    if (initialise_detection() == E_HAT_NOT_ATTACHED)
-        return E_HAT_NOT_ATTACHED;
-
+    initialise_detection();
     initialise_power_button();
 
     return SUCCESS;

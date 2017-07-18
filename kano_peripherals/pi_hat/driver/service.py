@@ -11,22 +11,24 @@
 # afterwards. However, there is a safety mechanism in place in case that fails.
 
 
-import os
 import time
 import dbus
 import dbus.service
 from multiprocessing import Process, Value
 
+from gi.repository import GObject
+
 from kano.logging import logger
 from kano.utils import run_bg
 
+from kano_peripherals.base_device_service import BaseDeviceService
 from kano_peripherals.lockable_service import LockableService
-from kano_peripherals.paths import PI_HAT_OBJECT_PATH, PI_HAT_IFACE
+from kano_peripherals.paths import PI_HAT_OBJECT_PATH, SERVICE_API_IFACE
 from kano_pi_hat.kano_hat_leds import KanoHatLeds
 from kano_pi_hat.kano_hat import KanoHat
 
 
-class PiHatService(dbus.service.Object):
+class PiHatService(BaseDeviceService):
     """
     This is a DBus Service provided by kano-boards-daemon.
 
@@ -36,15 +38,23 @@ class PiHatService(dbus.service.Object):
     Requires sudo.
     """
 
-    # LED Speaker Hardware Spec
-    NUM_LEDS = KanoHatLeds.LED_COUNT  # this is public
+    # The number of LEDs on the PiHat ring. This value has a getter.
+    NUM_LEDS = KanoHatLeds.LED_COUNT
 
-    # the top priority level for an api lock
-    MAX_PRIORITY_LEVEL = 10  # this is public
+    # The top priority level for an API lock. This value has a getter.
+    MAX_PRIORITY_LEVEL = 10
+
+    # The poll rate for checking if the board is still plugged in.
+    DETECT_THREAD_POLL_RATE = 5 * 1000  # milliseconds
 
     def __init__(self, bus_name):
         """
-        Constructor for the CK2ProHatService.
+        Constructor for the PiHatService.
+
+        Given that services should be ready to use when they come online, it also
+        performs initialisation and starts subprocesses. It also emits the
+        'device_connected' DBus signal as the service is expected to be brought
+        up only when the device was discovered.
 
         Args:
             bus_name - A dbus.service.BusName object to configure the base address.
@@ -52,20 +62,32 @@ class PiHatService(dbus.service.Object):
         super(PiHatService, self).__init__(bus_name, PI_HAT_OBJECT_PATH)
 
         self.lockable_service = LockableService(max_priority=self.MAX_PRIORITY_LEVEL)
+
+        # The high level 'library' object controlling the hardware.
         self.pi_hat = KanoHatLeds()
-        self.setup()
+        self.pi_hat.initialise()
 
         self.is_power_button_enabled = Value('b', False)
+
         self.power_button_thread = Process(
             target=self._power_button_thread,
             args=(self.is_power_button_enabled,)
         )
         self.power_button_thread.start()
 
-    def stop(self):
+        # Start the detection polling routine.
+        GObject.threads_init()
+        self.detect_thread_id = GObject.timeout_add(
+            self.DETECT_THREAD_POLL_RATE, self._detect_thread
+        )
+
+        self.device_connected(self.get_object_path())
+
+    def clean_up(self):
         """
         Stop all running (sub)processes and clean up before process termination.
         """
+        GObject.source_remove(self.detect_thread_id)
         self.power_button_thread.terminate()
 
         if not self.set_leds_off():
@@ -73,16 +95,29 @@ class PiHatService(dbus.service.Object):
 
     # --- Board Detection ---------------------------------------------------------------
 
-    @dbus.service.method(PI_HAT_IFACE, out_signature='')
-    def setup(self):
+    @staticmethod
+    def quick_detect():
         """
-        Initialise the PiHat board libraries.
+        A device detection static method complete with library initialisation.
+        Inherited and implemented from BaseDeviceService (look there for more info).
 
-        This is called on startup and does not require to be called manually.
+        Returns:
+            connected - bool whether or not the device is plugged in
         """
-        self.pi_hat.initialise()
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b')
+        # TODO: Check if the service is online, if true, return true and log an error.
+
+        pi_hat = KanoHatLeds()
+
+        if pi_hat.initialise():
+            return False
+
+        connected = pi_hat.is_connected()
+        pi_hat.clean_up()
+
+        return connected
+
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='', out_signature='b')
     def detect(self):
         """
         Detect whether the PiHat board is connected.
@@ -92,14 +127,33 @@ class PiHatService(dbus.service.Object):
         """
         return self.pi_hat.is_connected()
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='', out_signature='b')
     def is_plugged(self):
-        """ Same as detect. """
+        """
+        TODO: Same as detect, remove.
+        """
         return self.pi_hat.is_connected()
+
+    def _detect_thread(self):
+        """
+        Poll the detection for PiHat to know when it is unplugged.
+
+        When the PiHat is unplugged, the 'device_disconnected' DBus signal is emitted.
+        This method is run in a separate thread with GObject.
+
+        TODO: The library for this board uses WiringPi which can do hardware interrupts.
+              We could remove this polling thread by having the hardware notify us.
+        """
+        detected = self.detect()
+
+        if not detected:
+            self.device_disconnected(self.get_object_path())
+
+        return detected
 
     # --- API Locking -------------------------------------------------------------------
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='i', out_signature='s', sender_keyword='sender_id')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='i', out_signature='s', sender_keyword='sender_id')
     def lock(self, priority, sender_id=None):
         """
         Block all other API calls with a lower priority.
@@ -122,7 +176,7 @@ class PiHatService(dbus.service.Object):
         """
         return self.lockable_service.lock(priority, sender_id)
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b', sender_keyword='sender_id')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='', out_signature='b', sender_keyword='sender_id')
     def unlock(self, sender_id=None):
         """
         Unlock the API from the calling sender.
@@ -139,7 +193,7 @@ class PiHatService(dbus.service.Object):
         """
         return self.lockable_service.unlock(sender_id)
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='i', out_signature='b')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='i', out_signature='b')
     def is_locked(self, priority):
         """
         Check if the given priority level or any above are locked.
@@ -152,7 +206,7 @@ class PiHatService(dbus.service.Object):
         """
         return self.lockable_service.is_locked(priority)
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='i')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='', out_signature='i')
     def get_max_lock_priority(self):
         """
         Get the maximum priority level to lock with.
@@ -164,7 +218,7 @@ class PiHatService(dbus.service.Object):
 
     # --- LED Programming with Locked API -----------------------------------------------
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='s', out_signature='b', sender_keyword='sender_id')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='s', out_signature='b', sender_keyword='sender_id')
     def set_leds_off_with_token(self, token, sender_id=None):
         """
         Set all LEDs off.
@@ -184,7 +238,7 @@ class PiHatService(dbus.service.Object):
 
         return self.set_leds_off(sender_id=token)
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='a(ddd)s', out_signature='b', sender_keyword='sender_id')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='a(ddd)s', out_signature='b', sender_keyword='sender_id')
     def set_all_leds_with_token(self, values, token, sender_id=None):
         """
         Set all LED values.
@@ -205,7 +259,7 @@ class PiHatService(dbus.service.Object):
 
         return self.set_all_leds(values, sender_id=token)
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='i(ddd)s', out_signature='b', sender_keyword='sender_id')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='i(ddd)s', out_signature='b', sender_keyword='sender_id')
     def set_led_with_token(self, num, rgb, token, sender_id=None):
         """
         This method can be used in multiprocess contexts when the parent
@@ -228,7 +282,7 @@ class PiHatService(dbus.service.Object):
 
     # --- LED Programming API -----------------------------------------------------------
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b', sender_keyword='sender_id')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='', out_signature='b', sender_keyword='sender_id')
     def set_leds_off(self, sender_id=None):
         """
         Set all LEDs off.
@@ -244,7 +298,7 @@ class PiHatService(dbus.service.Object):
 
         return self.set_all_leds([(0, 0, 0)] * self.NUM_LEDS)
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='a(ddd)', out_signature='b', sender_keyword='sender_id')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='a(ddd)', out_signature='b', sender_keyword='sender_id')
     def set_all_leds(self, values, sender_id=None):
         """
         Set all LED values.
@@ -263,7 +317,7 @@ class PiHatService(dbus.service.Object):
 
         return self.pi_hat.set_all_leds(values)
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='i(ddd)', out_signature='b', sender_keyword='sender_id')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='i(ddd)', out_signature='b', sender_keyword='sender_id')
     def set_led(self, num, rgb, sender_id=None):
         """
         Set an LED value.
@@ -284,7 +338,7 @@ class PiHatService(dbus.service.Object):
 
         return self.pi_hat.set_led(num, rgb)
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='i')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='', out_signature='i')
     def get_num_leds(self):
         """
         Get the number of LEDs the LED Speaker has.
@@ -294,19 +348,20 @@ class PiHatService(dbus.service.Object):
         """
         return self.NUM_LEDS
 
-    # --- DBus Interface Testing --------------------------------------------------------
-
-    @dbus.service.method(PI_HAT_IFACE, in_signature='', out_signature='b')
-    def hello_world(self):
-        """
-        Use this method to check if the interface to the service
-        can reach this object.
-        """
-        return True
-
     # --- Power Button ------------------------------------------------------------------
 
-    @dbus.service.method(PI_HAT_IFACE, in_signature='b', out_signature='')
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='', out_signature='b')
+    def is_power_button_enabled(self):
+        """
+        Check if the power button was enabled to the Interrupt Service Routine.
+        Currently, this callback pops up the shutdown menu.
+
+        Returns:
+            enabled - boolean whether the button ISR will be run
+        """
+        return self.is_power_button_enabled.value
+
+    @dbus.service.method(SERVICE_API_IFACE, in_signature='b', out_signature='')
     def set_power_button_enabled(self, enabled):
         """
         Enable or disable the power button from performing
@@ -317,7 +372,7 @@ class PiHatService(dbus.service.Object):
         """
         self.is_power_button_enabled.value = enabled
 
-    @dbus.service.signal(PI_HAT_IFACE, signature='')
+    @dbus.service.signal(SERVICE_API_IFACE, signature='')
     def power_button_pressed(self):
         pass
 
@@ -358,12 +413,23 @@ class PiHatService(dbus.service.Object):
                 ' /usr/bin/shutdown-menu'
             )
 
+        logger.info('PiHatService: _power_button_thread: Starting..')
+
         startup_timestamp = time.time()
 
         kano_hat = KanoHat()
-        kano_hat.initialise()
-
-        kano_hat.register_power_off_cb(_launch_shutdown_menu)
+        rc = kano_hat.initialise()
+        if rc:
+            logger.error(
+                'PiHatService: _power_button_thread: Failed to initilise KanoHat'
+                ' with rc {}'.format(rc)
+            )
+        rc = kano_hat.register_power_off_cb(_launch_shutdown_menu)
+        if rc:
+            logger.error(
+                'PiHatService: _power_button_thread: Failed to register power off'
+                ' callback with rc {}'.format(rc)
+            )
 
         while True:
             time.sleep(1)
