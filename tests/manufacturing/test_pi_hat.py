@@ -21,13 +21,14 @@ from kano_peripherals.wrappers.led_ring.init_flow import InitFlow
 from kano_peripherals.paths import PI_HAT_OBJECT_PATH, PI_HAT_IFACE, \
     BUS_NAME as PI_HAT_BUS_NAME
 
+from boot_test import *
 import kano.colours as colours
 
 
 DBUS_MAIN_LOOP = DBusGMainLoop(set_as_default=True)
 
 
-class TestPiHat(unittest.TestCase):
+class TestPiHat(BootTest):
 
     @classmethod
     def setUpClass(self):
@@ -54,7 +55,8 @@ class TestPiHat(unittest.TestCase):
     # --- Tests -------------------------------------------------------------------------
 
     def test_pihat_board_detected(self):
-        self.assertTrue(self.iface.detect(), 'Pi Hat board could not be detected!')
+        self.bootAssertTrue(self.iface.detect(), 'Pi Hat board could not be detected!')
+        self._test_done()
 
     @unittest.skipIf(not get_pihat_interface().detect(), 'Board not detected, skipping')
     def test_run_rgb_sequence(self):
@@ -78,7 +80,8 @@ class TestPiHat(unittest.TestCase):
 
         saw_animation = (response == 'yes' or response == 'y')
 
-        self.assertTrue(saw_animation, 'Animation could not be observed on Pi Hat!')
+        self.bootAssertTrue(saw_animation, 'Animation could not be observed on Pi Hat!')
+        self._test_done()
 
     @unittest.skipIf(not get_pihat_interface().detect(), 'Board not detected, skipping')
     def test_power_button_press_detected(self):
@@ -133,7 +136,9 @@ class TestPiHat(unittest.TestCase):
         if self.power_button_failure:
             fail_msg = 'Power button press not detected'
             print colours.decorate_with_preset(fail_msg, 'fail')
-            self.fail(fail_msg)
+            self.bootAssertTrue(False, fail_msg)
+
+        self._test_done()
 
 
     # --- Helpers -----------------------------------------------------------------------
