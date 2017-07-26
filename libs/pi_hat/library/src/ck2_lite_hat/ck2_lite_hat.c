@@ -27,6 +27,8 @@ int initialise_ck2_lite(void)
         return rc;
     }
 
+    // TODO: Call the initialisation of all "modules" that describe hardware features.
+
     /**
      * The sound module was disabled at boot to avoid PiHat drivers from getting
      * desync'ed on the PWM pin. We enable it back as soon as possible,

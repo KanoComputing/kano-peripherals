@@ -25,6 +25,8 @@ int initialise_ck2_pro(void)
         return rc;
     }
 
+    // TODO: Call the initialisation of all "modules" that describe hardware features.
+
     if (!is_ck2_pro_connected()) {
         return E_HAT_NOT_ATTACHED;
     }

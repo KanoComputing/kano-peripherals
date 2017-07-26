@@ -18,6 +18,8 @@ class CK2ProHat(object):
     def __init__(self):
         super(CK2ProHat, self).__init__()
 
+        # List of registered callback pointers. These need to be kept otherwise
+        # Python will garbage collect them.
         self.callbacks = list()
 
     def initialise(self):

@@ -22,6 +22,8 @@
 #include "power_button.h"
 
 
+// TODO: Create an initialisation flag for this "module"
+
 int initialise(void)
 {
     switch (get_lock()) {

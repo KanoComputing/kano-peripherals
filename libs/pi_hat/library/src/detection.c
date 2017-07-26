@@ -20,6 +20,8 @@
 #include "detection.h"
 
 
+// TODO: Create an initialisation flag for this "module"
+
 /**
  * Sets up the detection system.
  *

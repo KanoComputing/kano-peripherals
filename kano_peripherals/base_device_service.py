@@ -10,11 +10,11 @@ import dbus
 
 from kano.logging import logger
 
-from kano_peripherals.base_dbus_service import BaseDbusService
+from kano_peripherals.base_dbus_service import BaseDBusService
 from kano_peripherals.paths import SERVICE_API_IFACE
 
 
-class BaseDeviceService(BaseDbusService):
+class BaseDeviceService(BaseDBusService):
     """
     The base class for all D-Bus services for devices supported in this project.
     """

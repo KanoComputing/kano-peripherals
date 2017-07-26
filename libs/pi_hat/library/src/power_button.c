@@ -23,6 +23,8 @@
 const int button_timeout = 5;
 callback_list *power_button_cbs;
 
+// TODO: Create an initialisation flag for this "module"
+
 
 int initialise_power_button()
 {

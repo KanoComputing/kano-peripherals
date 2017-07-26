@@ -26,6 +26,8 @@ const unsigned int counter_threshold = 5;
 
 callback_list *battery_level_changed_cbs;
 
+// TODO: Create an initialisation flag for this "module"
+
 
 int initialise_battery()
 {

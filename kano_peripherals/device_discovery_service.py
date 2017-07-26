@@ -15,7 +15,7 @@ from gi.repository import GObject
 
 from kano.logging import logger
 
-from kano_peripherals.base_dbus_service import BaseDbusService
+from kano_peripherals.base_dbus_service import BaseDBusService
 from kano_peripherals.speaker_leds.driver.service import SpeakerLEDsService
 from kano_peripherals.pi_hat.driver.service import PiHatService
 from kano_peripherals.ck2_pro_hat.driver.service import CK2ProHatService
@@ -23,7 +23,7 @@ from kano_peripherals.paths import DEVICE_DISCOVERY_OBJECT_PATH, SERVICE_API_IFA
     PI_HAT_OBJECT_PATH, CK2_PRO_HAT_OBJECT_PATH, SPEAKER_LEDS_OBJECT_PATH
 
 
-class DeviceDiscoveryService(BaseDbusService):
+class DeviceDiscoveryService(BaseDBusService):
     """
     This is a DBus Service provided by kano-boards-daemon.
 
