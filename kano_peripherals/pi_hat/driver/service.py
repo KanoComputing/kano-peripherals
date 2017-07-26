@@ -67,7 +67,7 @@ class PiHatService(BaseDeviceService):
         self.pi_hat = KanoHatLeds()
         self.pi_hat.initialise()
 
-        self.is_power_button_enabled = Value('b', False)
+        self.is_power_button_enabled = Value('b', True)
 
         self.power_button_thread = Process(
             target=self._power_button_thread,

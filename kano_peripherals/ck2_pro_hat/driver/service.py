@@ -56,7 +56,7 @@ class CK2ProHatService(BaseDeviceService):
         self.ck2_pro_hat = CK2ProHat()
         self.ck2_pro_hat.initialise()
 
-        self.is_power_button_enabled = Value('b', False)
+        self.is_power_button_enabled = Value('b', True)
         self.notif_trigger = Event()
 
         self.interrupt_thread = Process(
