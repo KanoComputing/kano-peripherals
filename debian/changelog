@@ -1,6 +1,11 @@
 kano-peripherals (3.11.0-0) unstable; urgency=low
 
-  * Add support for powerof on boot if battery is low
+  * Add support for poweroff on boot if battery is low
+  * Refactored DBus services architecture with DeviceDiscovery
+  * Added support for board hotplugging live
+  * Supporting board hotplugging in CPU monitor animation
+  * Added support for LED Speaker back
+  * Various fixes to library controlling PiHat and PowerHat
 
  -- Team Kano <dev@kano.me>  Mon, 17 May 2017 17:56:45 +0100
 
