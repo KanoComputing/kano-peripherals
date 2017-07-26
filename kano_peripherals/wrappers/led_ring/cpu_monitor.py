@@ -15,6 +15,8 @@
 import sys
 import math
 import time
+import dbus.exceptions
+import traceback
 
 from kano_settings.config_file import get_setting
 from kano.utils import run_cmd
@@ -31,9 +33,20 @@ class CpuMonitor(BaseAnimation):
     """
 
     LOCK_PRIORITY = 1
+    RECONNECT_RETRY_TIME = 5  # seconds
 
     def __init__(self):
         super(CpuMonitor, self).__init__()
+
+    def _reconnect(self):
+        """ """
+        while not self.connect(retry_count=0) and not self.interrupted:
+            time.sleep(self.RECONNECT_RETRY_TIME)
+
+        if self.interrupted:
+            return False
+
+        return True
 
     def start(self, update_rate, check_settings, retry_count):
         """
@@ -55,26 +68,25 @@ class CpuMonitor(BaseAnimation):
                 return
 
         # Connect to the DBus interface of a board with an LED ring.
-        if not self.connect():
+        if not self._reconnect():
             logger.error('LED Ring: CpuMonitor: Could not aquire dbus interface!')
             return RC_FAILED_ANIM_GET_DBUS
 
-        # Lock the API so anything below doesn't override our calls.
-        locked = self.iface.lock(self.LOCK_PRIORITY)
-        if not locked:
-            logger.error('LED Ring: CpuMonitor: Could not lock dbus interface!')
-            return RC_FAILED_LOCKING_API
+        try:
+            # Lock the API so anything below doesn't override our calls.
+            locked = self.iface.lock(self.LOCK_PRIORITY)
+            if not locked:
+                logger.error('LED Ring: CpuMonitor: Could not lock dbus interface!')
+                return RC_FAILED_LOCKING_API
 
-        # Setup the animation parameters.
-        num_leds = self.iface.get_num_leds()
-        vf = self.constant([self.colours.LED_KANO_ORANGE for i in range(num_leds)])
-        duration = update_rate
-        cycles = duration / 2
+            # Setup the animation parameters.
+            num_leds = self.iface.get_num_leds()
+            vf = self.constant([self.colours.LED_KANO_ORANGE for i in range(num_leds)])
+            duration = update_rate
+            cycles = duration / 2
 
-        # Run the animation loop
-        while not self.interrupted:
-            if self.iface.is_plugged():
-
+            # Run the animation loop
+            while not self.interrupted:
                 led_speeds = self._get_cpu_led_speeds(0.1, num_leds)
 
                 vf2 = self.pulse_each(vf, led_speeds)
@@ -82,8 +94,18 @@ class CpuMonitor(BaseAnimation):
 
                 if not successful:
                     time.sleep(duration)
-            else:
-                time.sleep(duration)
+
+        # Handle board hotplugging. The iface will not be able to reach the service it
+        # connected to after the board was unplugged. We try to reconnect to the DBus
+        # service here and restart the animation loop.
+        except dbus.exceptions.DBusException:
+            return self.start(update_rate, check_settings, retry_count)
+
+        except Exception:
+            logger.error(
+                'CpuMonitor: start: Unexpected error occured:\n{}'
+                .format(traceback.format_exc())
+            )
 
         # The API will be unlocked in the signal handler routine.
 

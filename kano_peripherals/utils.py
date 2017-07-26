@@ -67,7 +67,7 @@ def get_service_interface(object_path, object_iface, retry_count=5, retry_time_s
             successful = True
             break
 
-        except dbus.exceptions.DBusException, dbus.exceptions.UnknownMethodException:
+        except dbus.exceptions.DBusException:
             # The service could not be reached with the interface.
             if retry_count:
                 time.sleep(retry_time_sec)
@@ -75,7 +75,7 @@ def get_service_interface(object_path, object_iface, retry_count=5, retry_time_s
         except Exception:
             logger.error(
                 'utils: get_service_interface: For "{}", unexpected error occured:\n{}'
-                .format(traceback.format_exc())
+                .format(object_path, traceback.format_exc())
             )
             break
 
