@@ -16,6 +16,7 @@
 # up and finally quit the daemon main loop, shutting down completely.
 
 
+import os
 import dbus
 import traceback
 import dbus.service
@@ -27,6 +28,7 @@ from kano.logging import logger
 from kano_peripherals.base_dbus_service import BaseDBusService
 from kano_peripherals.speaker_leds.driver.service import SpeakerLEDsService
 from kano_peripherals.pi_hat.driver.service import PiHatService
+from kano_pi_hat.kano_hat_leds import KanoHatLeds
 from kano_peripherals.ck2_pro_hat.driver.service import CK2ProHatService
 from kano_peripherals.device_discovery_service import DeviceDiscoveryService
 from kano_peripherals.paths import SERVICE_MANAGER_OBJECT_PATH, SERVICE_API_IFACE, \
@@ -56,6 +58,12 @@ class ServiceManager(BaseDBusService):
 
         self.bus_name = bus_name
         self.mainloop = mainloop
+
+        # The KanoHatLeds object cannot be created when the audio module is loaded
+        # otherwise the neopixel lib gets mad. The audio module is blacklisted so we
+        # load it after the object creation.
+        self.pi_hat_lib = KanoHatLeds()
+        os.system('modprobe -i snd_bcm2835')
 
         # All services that need to be started and stopped by this daemon.
         # Add more here as needed.
@@ -165,7 +173,12 @@ class ServiceManager(BaseDBusService):
 
         try:
             Service = self.services[service_object_path]
-            service_instance = Service(self.bus_name)
+            # Pass the KanoHatLeds object to the PiHatService since reinstantiating the
+            # object clashes with the audio module.
+            if service_object_path == PI_HAT_OBJECT_PATH:
+                service_instance = Service(self.bus_name, self.pi_hat_lib)
+            else:
+                service_instance = Service(self.bus_name)
             self.running_services[service_object_path] = service_instance
 
         except dbus.exceptions.NameExistsException as e:

@@ -34,7 +34,7 @@ int initialise_ck2_lite(void)
      * desync'ed on the PWM pin. We enable it back as soon as possible,
      * regardless of whether we are using the board or not.
      */
-    system("modprobe -i " SND_MODULE);
+    // system("modprobe -i " SND_MODULE);
 
     if (!is_ck2_lite_connected()) {
         return E_HAT_NOT_ATTACHED;

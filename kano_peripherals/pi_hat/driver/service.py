@@ -47,7 +47,7 @@ class PiHatService(BaseDeviceService):
     # The poll rate for checking if the board is still plugged in.
     DETECT_THREAD_POLL_RATE = 5 * 1000  # milliseconds
 
-    def __init__(self, bus_name):
+    def __init__(self, bus_name, pi_hat):
         """
         Constructor for the PiHatService.
 
@@ -64,7 +64,7 @@ class PiHatService(BaseDeviceService):
         self.lockable_service = LockableService(max_priority=self.MAX_PRIORITY_LEVEL)
 
         # The high level 'library' object controlling the hardware.
-        self.pi_hat = KanoHatLeds()
+        self.pi_hat = pi_hat
         self.pi_hat.initialise()
 
         self.is_power_button_enabled = Value('b', True)
@@ -107,7 +107,7 @@ class PiHatService(BaseDeviceService):
 
         # TODO: Check if the service is online, if true, return true and log an error.
 
-        pi_hat = KanoHatLeds()
+        pi_hat = KanoHat()
 
         if pi_hat.initialise():
             return False
