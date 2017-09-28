@@ -1,8 +1,9 @@
 kano-peripherals (3.13.0-0) unstable; urgency=low
 
   * Added functionality to detect CKCs, CKC v1, CKC v1.1
+  * Hidden RC from turn-off-hat-leds service, fire and forget
 
- -- Team Kano <dev@kano.me>  Wed, 20 Sep 2017 18:29:45 +0100
+ -- Team Kano <dev@kano.me>  Fri, 28 Sep 2017 18:36:45 +0100
 
 kano-peripherals (3.11.0-0) unstable; urgency=low
 

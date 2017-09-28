@@ -10,12 +10,10 @@
 
 
 import sys
+import traceback
 
 
 COLOUR_BLACK = (0, 0, 0)
-
-RC_SUCCESSFUL = 0
-RC_UNEXPECTED_ERROR = 1
 
 
 def turn_off_pihat():
@@ -30,9 +28,10 @@ def turn_off_pihat():
             return
 
         pi_hat.set_all_leds([COLOUR_BLACK] * pi_hat.LED_COUNT)
+        return True
 
     except:
-        return RC_UNEXPECTED_ERROR
+        print traceback.print_exc()
 
 
 def turn_off_speaker_led():
@@ -53,16 +52,18 @@ def turn_off_speaker_led():
             if not successful:
                 return
 
+        return True
+
     except:
-        return RC_UNEXPECTED_ERROR
+        print traceback.print_exc()
 
 
 def main():
-    pihat_rc = turn_off_pihat()
-    speakerled_rc = turn_off_speaker_led()
-
-    return pihat_rc or speakerled_rc
+    # Call all methods until one succeeds.
+    turn_off_pihat() or turn_off_speaker_led()
 
 
 if __name__ == '__main__':
-    sys.exit(main() or RC_SUCCESSFUL)
+    # Do not report to systemd that there was an issue, log it instead.
+    # This is to "avoid showing unuseful messages to users".
+    sys.exit(main() or 0)
