@@ -12,6 +12,7 @@
 
 . gettext.sh
 
+console_tty="/dev/tty1"
 export TEXTDOMAIN="kano-peripherals"
 
 function sysrq_power_off() {
@@ -35,13 +36,18 @@ function sysrq_power_off() {
 /usr/bin/battery-status
 if [ "$?" == "1" ]; then
 
-    # setupcon sets up the correct font size on the console
+    # Setupcon sets up the correct font size on the console
     /bin/setupcon
 
-    eval_gettext "WARNING: Battery charge is too low, please connect the charger" > /dev/tty1
-    echo > /dev/tty1
-    eval_gettext "Powering off the kit now..." > /dev/tty1
-    echo > /dev/tty1
+    # Stop the bootup animation, clear the terminal,
+    kano-stop-splash boot
+    echo -e '\033\0143' > $console_tty
+
+    # Display message on the console then power off
+    eval_gettext "WARNING: Battery charge is too low, please connect the charger" > $console_tty
+    echo > $console_tty
+    eval_gettext "Powering off the kit now..." > $console_tty
+    echo > $console_tty
 
     sleep 10
     sysrq_power_off
