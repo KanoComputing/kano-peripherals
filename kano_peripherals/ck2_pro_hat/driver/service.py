@@ -15,8 +15,6 @@ import dbus
 import dbus.service
 from multiprocessing import Process, Value, Event
 
-from gi.repository import GObject
-
 from kano.logging import logger
 from kano.utils import run_bg
 
@@ -73,6 +71,9 @@ class CK2ProHatService(BaseDeviceService):
         )
         self.battery_notif_thread.start()
 
+        # Lazy import to avoid issue of importing from this module externally.
+        from gi.repository import GObject
+
         # Start the detection polling routine.
         GObject.threads_init()
         self.detect_thread_id = GObject.timeout_add(
@@ -85,6 +86,10 @@ class CK2ProHatService(BaseDeviceService):
         """
         Stop all running (sub)processes and clean up before process termination.
         """
+
+        # Lazy import to avoid issue of importing from this module externally.
+        from gi.repository import GObject
+
         GObject.source_remove(self.detect_thread_id)
 
         self.interrupt_thread.terminate()

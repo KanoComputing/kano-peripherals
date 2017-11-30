@@ -8,7 +8,6 @@
 
 import os
 import threading
-from gi.repository import GLib
 
 from kano.notifications import display_generic_notification, \
     close_current_notification, update_current_notification
@@ -66,6 +65,9 @@ class BatteryNotifyThread(threading.Thread):
         Starts the thread waiting for a notification event to be triggered.
         '''
 
+        # Lazy import to avoid issue of importing from this module externally.
+        from gi.repository import GLib
+
         while True:
             if not self._notif_trigger.wait(1):
                 continue
@@ -106,6 +108,9 @@ class BatteryNotifyThread(threading.Thread):
             )
 
             if self._shutdown_enabled.value:
+                # Lazy import to avoid issue of importing from this module externally.
+                from gi.repository import GLib
+
                 GLib.timeout_add_seconds(
                     SHUTDOWN_WARN_TIME,
                     self._low_power_shutdown
@@ -159,6 +164,10 @@ class BatteryNotifyThread(threading.Thread):
             # Initialise the shutdown timer
             self.shutdown_time_remaining = SHUTDOWN_TIMEOUT
             self._update_countdown(self.shutdown_time_remaining, create=True)
+
+            # Lazy import to avoid issue of importing from this module externally.
+            from gi.repository import GLib
+
             GLib.timeout_add_seconds(
                 1,
                 self._low_power_shutdown

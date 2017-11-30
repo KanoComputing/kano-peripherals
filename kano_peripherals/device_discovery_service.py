@@ -11,8 +11,6 @@
 
 import dbus
 
-from gi.repository import GObject
-
 from kano.logging import logger
 
 from kano_peripherals.base_dbus_service import BaseDBusService
@@ -50,6 +48,9 @@ class DeviceDiscoveryService(BaseDBusService):
             SPEAKER_LEDS_OBJECT_PATH: SpeakerLEDsService.quick_detect
         }
 
+        # Lazy import to avoid issue of importing from this module externally.
+        from gi.repository import GObject
+
         GObject.threads_init()
         self.discovery_thread_id = GObject.idle_add(self._discovery_thread)
 
@@ -57,6 +58,10 @@ class DeviceDiscoveryService(BaseDBusService):
         """
         Stop all running (sub)processes and clean up before process termination.
         """
+
+        # Lazy import to avoid issue of importing from this module externally.
+        from gi.repository import GObject
+
         GObject.source_remove(self.discovery_thread_id)
 
     def _discovery_thread(self):
@@ -71,6 +76,9 @@ class DeviceDiscoveryService(BaseDBusService):
             if detection_routine():
                 self.device_discovered(service_object_path)
                 return False
+
+        # Lazy import to avoid issue of importing from this module externally.
+        from gi.repository import GObject
 
         # Did not detect anything, keep calling this method.
         self.discovery_thread_id = GObject.timeout_add(

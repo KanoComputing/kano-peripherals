@@ -10,8 +10,6 @@ import os
 import dbus
 import dbus.service
 
-from gi.repository import GObject
-
 from kano.logging import logger
 from kano.utils import run_cmd
 
@@ -49,6 +47,9 @@ class LockableService(object):
             lock_data = self._get_sender_data(sender_id)
 
             if self.locks.is_empty():
+                # Lazy import to avoid issue of importing from this module externally.
+                from gi.repository import GObject
+
                 GObject.timeout_add(self.LOCKING_THREAD_POLL_RATE, self._locking_thread)
 
             self.locks.put(priority, lock_data)

@@ -21,8 +21,6 @@ import dbus
 import traceback
 import dbus.service
 
-from gi.repository import GObject
-
 from kano.logging import logger
 
 from kano_peripherals.base_dbus_service import BaseDBusService
@@ -148,6 +146,9 @@ class ServiceManager(BaseDBusService):
         """
         for service_instance in self.running_services.itervalues():
             service_instance.stop()
+
+        # Lazy import to avoid issue of importing from this module externally.
+        from gi.repository import GObject
 
         # Exit the mainloop slightly later, allow the method to return
         # and reply to the caller.

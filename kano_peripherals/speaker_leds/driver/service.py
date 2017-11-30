@@ -16,8 +16,6 @@
 import dbus
 import dbus.service
 
-from gi.repository import GObject
-
 from kano.logging import logger
 
 from kano_peripherals.base_device_service import BaseDeviceService
@@ -66,6 +64,9 @@ class SpeakerLEDsService(BaseDeviceService):
         # Locking with priority levels for exclusive access.
         self.lockable_service = LockableService(max_priority=self.MAX_PRIORITY_LEVEL)
 
+        # Lazy import to avoid issue of importing from this module externally.
+        from gi.repository import GObject
+
         # Start the detection polling routine.
         GObject.threads_init()
         self.detect_thread_id = GObject.timeout_add(
@@ -83,6 +84,10 @@ class SpeakerLEDsService(BaseDeviceService):
         """
         Stop all running (sub)processes and clean up before process termination.
         """
+
+        # Lazy import to avoid issue of importing from this module externally.
+        from gi.repository import GObject
+
         GObject.source_remove(self.detect_thread_id)
 
         if not self.set_leds_off():
