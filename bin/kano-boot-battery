@@ -9,11 +9,27 @@
 # This script is run very early on startup, when the filesystems are still mounted read only.
 # See the file systemd/system/kano-bootup-battery.service for details.
 #
+# There are 2 ways to test this module manually:
+#
+#  1) Interactively, with "sudo kano-boot-battery --dry-run"
+#  2) Faking low battery signal "sudo kano-boot-battery --enable-test && sudo reboot"
+#
+#  See the README for details: https://github.com/KanoComputing/kano-peripherals#kano-peripherals
+#
 
 . gettext.sh
 
 console_tty="/dev/tty1"
 export TEXTDOMAIN="kano-peripherals"
+
+poweroff=0
+test_file="/var/tmp/test_boot_battery"
+
+# --dry-run will explain if the kit would be powered off
+dry_run=0
+if [ "$1" == "--dry-run" ]; then
+    dry_run=1
+fi
 
 function sysrq_power_off() {
 
@@ -33,15 +49,44 @@ function sysrq_power_off() {
 #
 # Script entry
 #
-/usr/bin/battery-status
-if [ "$?" == "1" ]; then
+if [ `id -u` != 0 ]; then
+    echo "Must be root"
+    exit 1
+fi
+
+# Enable test mode
+if [ "$1" == "--enable-test" ]; then
+    touch "$test_file"
+    if [ "$?" == "0" ]; then
+        echo "Test mode enabled - you can reboot now"
+        exit 0
+    else
+        echo "Test mode could not be enabled"
+        exit 1
+    fi
+fi
+
+# Decide wether a real or test power off is to take place
+if [ -f "$test_file" ]; then
+    echo "Powering off enabled due to test file $test_file"
+    poweroff=1
+    rm -rf "$test_file"
+else
+    /usr/bin/battery-status
+    if [ "$?" == "1" ]; then
+        echo "Powering off enabled due to low battery hardware signal"
+        poweroff=1
+    fi
+fi
+
+if [ "$poweroff" == "1" ]; then
 
     # Setupcon sets up the correct font size on the console
     /bin/setupcon
 
     # Stop the bootup animation, clear the terminal,
-    kano-stop-splash boot
     echo -e '\033\0143' > $console_tty
+    kano-stop-splash boot
 
     # Display message on the console then power off
     eval_gettext "WARNING: Battery charge is too low, please connect the charger" > $console_tty
@@ -49,8 +94,22 @@ if [ "$?" == "1" ]; then
     eval_gettext "Powering off the kit now..." > $console_tty
     echo > $console_tty
 
-    sleep 10
-    sysrq_power_off
+    if [ "$dry_run" == "0" ]; then
+
+        # If we are here due to fake test mode, remove the file to avoid endless reboots
+        if [ -f "$test_file"  ]; then
+            sudo mount -o remount,rw /dev/mmcblk0p2 /
+            rm "$test_file"
+            sudo mount -o remount,ro /dev/mmcblk0p2 /
+        fi
+
+        sleep 10
+        sysrq_power_off
+    else
+        echo "dry-run enabled - aborting"
+    fi
+else
+    echo "No reboot neeeded - battery is ok and test mode not detected"
 fi
 
 exit 0
