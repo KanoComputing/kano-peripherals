@@ -1,3 +1,11 @@
+kano-peripherals (3.15.0-0) unstable; urgency=low
+
+  * Re-enabled LED Speaker detection through kano-speakerleds
+  * Fixed Python packages to be importable and not execute code at import
+  * Added Python documentation tools for generating API docs
+
+ -- Team Kano <dev@kano.me>  Fri, 19 Jan 2018 13:36:44 +0100
+
 kano-peripherals (3.14.0-0) unstable; urgency=low
 
   * Changed battery detection on boot, to work with new splash animation
