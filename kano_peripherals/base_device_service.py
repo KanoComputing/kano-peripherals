@@ -29,7 +29,7 @@ class BaseDeviceService(BaseDBusService):
         """
         super(BaseDeviceService, self).__init__(bus_name, object_path)
 
-    # --- Device Detection ---------------------------------------------------------------
+    # --- Device Detection --------------------------------------------------------------
 
     @classmethod
     def quick_detect(cls):

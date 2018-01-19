@@ -26,19 +26,19 @@ CKC_V_1_1_0 = LooseVersion('1.1.0')
 
 
 def is_pi_hat_plugged(with_dbus=True, retry_count=5):
-    """
-    Check if the Kano PiHat board is plugged in.
-
-    Args:
-        with_dbus - bool whether to run the detection through the central dbus
-            kano-boards-daemon, or bypass to use the underlyning library
-        retry_count - int the number of retries attempted when grabbing a dbus iface
-
-    Returns:
-        is_plugged - bool whether the PiHat is plugged in or not.
+    """Check if the Kano PiHat board is plugged in.
 
     NOTE: Running this function with_dbus=False must be done when the daemon is
           certainly not running. Otherwise, bad things might happen.
+
+    Args:
+        with_dbus (bool): Whether to run the detection through the central dbus
+            kano-boards-daemon, or bypass to use the underlyning library
+        retry_count: See
+            :func:`~kano_peripherals.pi_hat.driver.high_level.get_pihat_interface`
+
+    Returns:
+        bool: Whether the PiHat is plugged in or not
     """
     is_plugged = False
 
@@ -55,19 +55,19 @@ def is_pi_hat_plugged(with_dbus=True, retry_count=5):
 
 
 def is_power_hat_plugged(with_dbus=True, retry_count=5):
-    """
-    Check if the Kano PowerHat board is plugged in.
-
-    Args:
-        with_dbus - bool whether to run the detection through the central dbus
-            kano-boards-daemon, or bypass to use the underlyning library
-        retry_count - int the number of retries attempted when grabbing a dbus iface
-
-    Returns:
-        is_plugged - bool whether the PowerHat is plugged in or not.
+    """Check if the Kano PowerHat board is plugged in.
 
     NOTE: Running this function with_dbus=False must be done when the daemon is
           certainly not running. Otherwise, bad things might happen.
+
+    Args:
+        with_dbus (bool): Whether to run the detection through the central dbus
+            kano-boards-daemon, or bypass to use the underlying library
+        retry_count: See
+            :func:`~kano_peripherals.ck2_pro_hat.driver.high_level.get_ck2_pro_hat_interface`
+
+    Returns:
+        bool: Whether the PowerHat is plugged in or not
     """
     is_plugged = False
 
@@ -84,63 +84,61 @@ def is_power_hat_plugged(with_dbus=True, retry_count=5):
 
 
 def is_ck2_lite(with_dbus=True, retry_count=5):
-    """
-    Check if the hardware is recognised as a Computer Kit (2) Lite.
+    """Check if the hardware is recognised as a Computer Kit (2) Lite.
 
     At the moment this relies on PiHat board being plugged in.
     Reimplement as the spec changes.
 
     Args:
-        with_dbus - bool as passed to is_pi_hat_plugged function
-        retry_count - int as passed to is_pi_hat_plugged function
+        with_dbus: See :func:`is_pi_hat_plugged`
+        retry_count: See :func:`is_pi_hat_plugged`
 
     Returns:
-        is_ck2_lite - bool whether this is a CK2 Lite or not.
+        bool: Whether this is a CK2 Lite or not
     """
     return is_pi_hat_plugged(with_dbus=with_dbus, retry_count=retry_count)
 
 
 def is_ck2_pro(with_dbus=True, retry_count=5):
-    """
-    Check if the hardware is recognised as a Computer Kit (2) Pro.
+    """Check if the hardware is recognised as a Computer Kit (2) Pro.
 
     At the moment this relies on PowerHat board being plugged in.
     Reimplement as the spec changes.
 
     Args:
-        with_dbus - bool as passed to is_power_hat_plugged function
-        retry_count - int as passed to is_power_hat_plugged function
+        with_dbus: See :func:`is_power_hat_plugged`
+        retry_count: See :func:`is_power_hat_plugged`
 
     Returns:
-        is_ck2_pro - bool whether this is a CK2 Pro or not.
+        bool: Whether this is a CK2 Pro or not
     """
     return is_power_hat_plugged(with_dbus=with_dbus, retry_count=retry_count)
 
 
 def get_ck2_lite_version():
-    """
-    Get the version of the Computer Kit Lite.
+    """Get the version of the Computer Kit Lite.
 
     The CKL does not currently have any versions so update as required.
 
     NOTE: This does not do the detection and it assumes it is already the case.
-          Use is_ck2_lite() before calling this function.
+          Use :func:`~is_ck2_lite()` before calling this function.
 
     Returns:
-        LooseVersion object for versions which are detectable, None otherwise.
+        distutils.version.LooseVersion:
+            For versions which are detectable, None otherwise
     """
     return CKL_V_1_0_0
 
 
 def get_ck2_pro_version():
-    """
-    Get the version of the Computer Kit Complete.
+    """Get the version of the Computer Kit Complete.
 
     NOTE: This does not do the detection and it assumes it is already the case.
-          Use is_ck2_pro() before calling this function.
+          Use :func:`~is_ck2_pro()` before calling this function.
 
     Returns:
-        LooseVersion object for versions which are detectable, None otherwise.
+        distutils.version.LooseVersion:
+            For versions which are detectable, None otherwise
     """
     edid_model = get_edid_name()
 
