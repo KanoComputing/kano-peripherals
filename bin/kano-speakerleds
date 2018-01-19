@@ -2,7 +2,7 @@
 
 # kano-speakerleds
 #
-# Copyright (C) 2015 - 2017 Kano Computing Ltd.
+# Copyright (C) 2015-2018 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
 # Command for interacting with LED Speaker and Pi Hat Kano boards.
@@ -41,7 +41,7 @@ if __name__ == '__main__' and __package__ is None:
     else:
         LOCALE_PATH = None
 
-# from kano_peripherals.speaker_leds.driver.high_level import get_speakerleds_interface
+from kano_peripherals.speaker_leds.driver.high_level import get_speakerleds_interface
 from kano_peripherals.pi_hat.driver.high_level import get_pihat_interface
 from kano_peripherals.ck2_pro_hat.driver.high_level import get_ck2_pro_hat_interface
 
@@ -55,9 +55,9 @@ from kano_peripherals.return_codes import *
 
 def main(args):
     if args['detect']:
-        # iface = get_speakerleds_interface()
-        # if iface and iface.detect():
-        #     return RC_KANO_LED_SPEAKER_DETECTED
+        iface = get_speakerleds_interface(retry_count=1)
+        if iface and iface.detect():
+            return RC_KANO_LED_SPEAKER_DETECTED
 
         iface = get_pihat_interface(retry_count=1)
         if iface and iface.detect():
