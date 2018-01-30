@@ -23,7 +23,9 @@ all:
 
 # Override the clean target to get rid of all generated .rst files.
 clean:
-	-find source -name "*.rst" -type f -not -name "index.rst" -not -name "modules.rst" -delete
+	-find source -name "*.rst" -type f \
+		-not -name "index.rst" -not -name "modules.rst" -not -name "readme.rst" \
+		-delete
 	-$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 # Catch-all target: route all unknown targets to Sphinx using the new
