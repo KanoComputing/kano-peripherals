@@ -9,13 +9,15 @@
 # Messages will appear on the console if any action is taken.
 # Systemd services and the console log will stay still while this service is running.
 #
+# By running the service before kano-os-loader, we guarantee that the filesystems
+# are still mounted read-only. This condition is necessary because sysrq does not flush system buffers.
+#
 
 [Unit]
 Description=Kano Low Battery bootup
 DefaultDependencies=no
 Conflicts=shutdown.target
-After=systemd-readahead-collect.service systemd-readahead-replay.service systemd-fsck-root.service
-Before=systemd-remount-fs.service
+Before=kano-os-loader.service
 Wants=local-fs-pre.target
 
 [Service]
@@ -24,4 +26,5 @@ RemainAfterExit=yes
 ExecStart=/usr/bin/kano-boot-battery
 
 [Install]
-WantedBy=local-fs-pre.target
+WantedBy=kano-os-loader.service
+
