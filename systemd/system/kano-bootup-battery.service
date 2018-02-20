@@ -9,16 +9,22 @@
 # Messages will appear on the console if any action is taken.
 # Systemd services and the console log will stay still while this service is running.
 #
-# By running the service before kano-os-loader, we guarantee that the filesystems
-# are still mounted read-only. This condition is necessary because sysrq does not flush system buffers.
+# The service runs after kano-os-loader, before file systems are remounted read-write,
+# and the splash bootup animation starts.
+#
+# This complies with the condition that filesystem is still read-only - because
+# sysrq does not flush system buffers - and that the console is availabe
+# to display the warning message.
 #
 
 [Unit]
 Description=Kano Low Battery bootup
 DefaultDependencies=no
 Conflicts=shutdown.target
-Before=kano-os-loader.service
+
 Wants=local-fs-pre.target
+After=kano-os-loader.service
+Before=systemd-remount-fs.service boot-splash-start.service
 
 [Service]
 Type=oneshot
