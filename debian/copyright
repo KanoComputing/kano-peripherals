@@ -2,9 +2,9 @@ Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Contact: Kano developers <dev@kano.me>
 
 Files: *
-Copyright: 2015-2017 Kano Computing Ltd.
+Copyright: 2015-2018 Kano Computing Ltd.
 License: GPL-2+
 
-Files: kano_peripherals/speaker_leds_pwm_driver.py:
+Files: kano_peripherals/speaker_leds/driver/pwm_driver.py:
 Copyright: 2012-2013 Limor Fried, Kevin Townsend and Mikey Sklar for Adafruit Industries.
 Licence: BSD-3-clause

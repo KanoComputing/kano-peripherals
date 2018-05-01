@@ -6,11 +6,13 @@
 # Standard interface to work with the project.
 
 
-.PHONY: clean docs
-
+.PHONY: clean docs libs
 
 clean:
 	cd docs && make clean
 
 docs:
 	cd docs && make all
+
+libs:
+	cd libs/pi_hat && cmake . && make

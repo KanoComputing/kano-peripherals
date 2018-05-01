@@ -1,3 +1,13 @@
+#
+# CMakeLists.txt
+#
+# Copyright (C) 2018 Kano Computing Ltd.
+# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPLv2
+#
+# Build definitions for the interface with the RPi hats
+#
+
+
 cmake_minimum_required (VERSION 2.6)
 
 project (kano_hat C)
