@@ -8,3 +8,7 @@ License: GPL-2+
 Files: kano_peripherals/speaker_leds/driver/pwm_driver.py:
 Copyright: 2012-2013 Limor Fried, Kevin Townsend and Mikey Sklar for Adafruit Industries.
 Licence: BSD-3-clause
+
+Files: touch-detect/touch-detect.c
+Copyright: 1996-1997 by Frederic Lepied, France, 2007 Peter Hutterer, 2009 Red Hat, Inc, 2018 Kano Computing Ltd
+Licence: MIT

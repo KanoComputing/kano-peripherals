@@ -1,0 +1,2 @@
+touch-detect/touch-detect usr/bin/
+touch-detect/set_rotate.sh  usr/share/kano-peripherals/scripts/

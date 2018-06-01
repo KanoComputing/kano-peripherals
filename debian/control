@@ -10,7 +10,9 @@ Build-Depends:
     cmake,
     make,
     gcc,
-    wiringpi
+    wiringpi,
+    libx11-dev,
+    libxi-dev
 
 Package: kano-peripherals
 Architecture: all
@@ -48,3 +50,10 @@ Package: kano-peripherals-i18n-orig
 Architecture: all
 Description: Data for working on translations of kano-peripherals
 Multi-Arch: foreign
+
+Package: kano-touch-support
+Architecture: any
+Depends:
+    ${misc:Depends}
+Description: Support for touchscreen detection and flipping
+

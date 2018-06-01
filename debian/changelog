@@ -1,3 +1,9 @@
+kano-peripherals (4.0.0-0) unstable; urgency=low
+
+  * Added touch-detect tool
+
+ -- Team Kano <dev@kano.me>  Fri, 1 Juxn 2018 16:00:00 +0100
+
 kano-peripherals (3.15.0-0) unstable; urgency=low
 
   * Re-enabled LED Speaker detection through kano-speakerleds
