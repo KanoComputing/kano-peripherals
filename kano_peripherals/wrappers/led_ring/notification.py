@@ -11,7 +11,8 @@ import json
 from kano.logging import logger
 
 from kano_peripherals.wrappers.led_ring.base_animation import BaseAnimation
-from kano_peripherals.return_codes import *
+from kano_peripherals.return_codes import RC_FAILED_UNLOCKING_API, \
+    RC_FAILED_ANIM_GET_DBUS, RC_FAILED_LOCKING_API
 
 # TODO: Move these
 from kano_peripherals.speaker_leds.colours import LED_MAGENTA, LED_RED, LED_BLACK

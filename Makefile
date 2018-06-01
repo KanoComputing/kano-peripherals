@@ -5,6 +5,7 @@
 #
 # Standard interface to work with the project.
 
+REPO:= kano-peripherals
 
 .PHONY: clean docs libs
 
@@ -16,3 +17,10 @@ docs:
 
 libs:
 	cd libs/pi_hat && cmake . && make
+
+#
+# Add test targets
+#
+include pythontest.mk
+check: pythontest
+test: check

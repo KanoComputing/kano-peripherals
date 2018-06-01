@@ -1,0 +1,7 @@
+behave
+coverage-badge
+pytest
+pyfakefs==3.3.0
+pytest-cov
+pytest-flake8
+pytest-tap

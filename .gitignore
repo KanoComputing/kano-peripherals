@@ -20,6 +20,11 @@ cscope.in.out
 cscope.po.out
 
 
+# Test files
+reports
+.pytest_cache
+
+
 # Created by https://www.gitignore.io/api/python,c,c++,vim,osx,sublimetext,cmake
 
 ### C ###

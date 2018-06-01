@@ -23,7 +23,8 @@ from kano.utils import run_cmd
 from kano.logging import logger
 
 from kano_peripherals.wrappers.led_ring.base_animation import BaseAnimation
-from kano_peripherals.return_codes import *
+from kano_peripherals.return_codes import RC_FAILED_CPU_MONIT_FETCH, \
+    RC_FAILED_ANIM_GET_DBUS, RC_FAILED_LOCKING_API
 
 
 class CpuMonitor(BaseAnimation):
