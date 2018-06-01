@@ -14,11 +14,29 @@ from kano.logging import logger
 from kano_settings.system.display import get_edid_name
 
 
+CKL, CKC, CKT = xrange(3)
+
 
 CKL_V_1_0_0 = LooseVersion('1.0.0')
 
 CKC_V_1_0_0 = LooseVersion('1.0.0')
 CKC_V_1_1_0 = LooseVersion('1.1.0')
+
+CKT_V_1_0_0 = LooseVersion('1.0.0')
+
+
+EDID_MAP = {
+    # The v1 was the first batch manufactured and the only hardware
+    # characteristic to distinguish it was the model name of the screen
+    # which was changed (to MST-HDMI) come first production of CKCs.
+    'MST-HDMI': (CKC, CKC_V_1_0_0),
+    # The v1.1 was the second batch manufactured and the only hardware
+    # characteristic to distinguish it was the model name of the screen
+    # which was changed (to HTC-HDMI) for the second production run of CKCs.
+    'HTC-HDMI': (CKC, CKC_V_1_1_0),
+    # FIXME: Insert the correct CKT EDID here when it is available
+    'CKT-HDMI': (CKT, CKT_V_1_0_0)
+}
 
 
 def is_pi_hat_plugged(with_dbus=True, retry_count=5):
@@ -102,6 +120,19 @@ def is_ck2_lite(with_dbus=True, retry_count=5):
     return is_pi_hat_plugged(with_dbus=with_dbus, retry_count=retry_count)
 
 
+def get_screen_version():
+    '''Retrieves the kit type and version from the EDID data
+
+    Returns:
+        (int, distutils.version.LooseVersion):
+                Tuple of the kit identifier and the version associated
+                with that kit. If this fails, (None, None) is returned
+    '''
+    edid_model = get_edid_name()
+
+    return EDID_MAP.get(edid_model, (None, None))
+
+
 def is_ck2_pro(with_dbus=True, retry_count=5):
     """Check if the hardware is recognised as a Computer Kit (2) Pro.
 
@@ -115,7 +146,42 @@ def is_ck2_pro(with_dbus=True, retry_count=5):
     Returns:
         bool: Whether this is a CK2 Pro or not
     """
-    return is_power_hat_plugged(with_dbus=with_dbus, retry_count=retry_count)
+    hat_connected = is_power_hat_plugged(
+        with_dbus=with_dbus, retry_count=retry_count
+    )
+
+    if not hat_connected:
+        return False
+
+    kit, dummy_version = get_screen_version()
+
+    return kit == CKC
+
+
+def is_ckt(with_dbus=True, retry_count=5):
+    """Check if the hardware is recognised as a Computer Kit Touch.
+
+
+    The determination is based on the PowerHat board being plugged in along with
+    a matching EDID for the CKT kits.
+
+    Args:
+        with_dbus: See :func:`is_power_hat_plugged`
+        retry_count: See :func:`is_power_hat_plugged`
+
+    Returns:
+        bool: Whether this is a CKT or not
+    """
+    hat_connected = is_power_hat_plugged(
+        with_dbus=with_dbus, retry_count=retry_count
+    )
+
+    if not hat_connected:
+        return False
+
+    kit, dummy_version = get_screen_version()
+
+    return kit == CKT
 
 
 def get_ck2_lite_version():
@@ -143,19 +209,12 @@ def get_ck2_pro_version():
         distutils.version.LooseVersion:
             For versions which are detectable, None otherwise
     """
-    edid_model = get_edid_name()
+    dummy_kit, version = get_screen_version()
 
-    # The v1 was the first batch manufactured and the only hardware
-    # characteristic to distinguish it was the model name of the screen
-    # which was changed (to MST-HDMI) come first production of CKCs.
-    if edid_model == 'MST-HDMI':
-        return CKC_V_1_0_0
+    return version
 
-    # The v1.1 was the second batch manufactured and the only hardware
-    # characteristic to distinguish it was the model name of the screen
-    # which was changed (to HTC-HDMI) for the second production run of CKCs.
-    if edid_model == 'HTC-HDMI':
-        return CKC_V_1_1_0
 
-    # Any version above (or other) is marked as 'undefined'.
-    return None
+def get_ckt_version():
+    dummy_kit, version = get_screen_version()
+
+    return version

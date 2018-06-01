@@ -8,3 +8,6 @@
 #
 # Import fixtures and setup the tests
 #
+
+
+from tests.fixtures.hw_config import *
