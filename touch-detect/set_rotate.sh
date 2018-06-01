@@ -1,5 +1,11 @@
 # NB no shebang because this script must be sourced
 #
+# set_rotate.sh
+#
+# Copyright (C) 2018 Kano Computing Ltd.
+# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
+#
+#
 
 
 function is_rotated() {
