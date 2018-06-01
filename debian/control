@@ -54,6 +54,8 @@ Multi-Arch: foreign
 Package: kano-touch-support
 Architecture: any
 Depends:
-    ${misc:Depends}
+    ${misc:Depends},
+    libx11-6,
+    libxi6
 Description: Support for touchscreen detection and flipping
 

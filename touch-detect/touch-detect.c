@@ -21,11 +21,17 @@
 #include <X11/extensions/XInput.h>
 #include <X11/extensions/XInput2.h>
 #include <stdio.h>
+#include <syslog.h>
 
 int isTouch(void) {
     int found = 1;
     Display     *display = XOpenDisplay(NULL);
-    int ndevices, i, j;
+    int ndevices=0, i, j;
+    if(!display)
+    {
+        syslog(LOG_ERR | LOG_USER, "touch-detect: could not connect to display\n");
+        exit(1);
+    }
 
     XIDeviceInfo *info, *dev;
     info = XIQueryDevice(display, XIAllDevices, &ndevices);
