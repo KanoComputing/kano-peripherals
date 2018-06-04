@@ -1,0 +1,13 @@
+#
+# kano-touch-flip.service
+#  configure touch orientation for X and 
+#
+
+[Unit]
+Description=Kano touchscreen flip for X
+IgnoreOnIsolate=true
+After=lightdm.service
+
+[Service]
+ExecStart=/usr/share/kano-peripherals/scripts/set_rotate.sh
+Type=oneshot
