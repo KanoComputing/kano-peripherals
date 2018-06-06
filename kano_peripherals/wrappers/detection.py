@@ -136,22 +136,20 @@ def is_ck2_pro(with_dbus=True, retry_count=5):
     """Check if the hardware is recognised as a Computer Kit (2) Pro.
 
     At the moment this relies on PowerHat board being plugged in.
-    Reimplement as the spec changes.
+
+    Given the EOL of the CKC, we have the full list of EDIDs that can be used
+    so use these alone to determine the kit's status so completely disregard
+    the PowerHat's presence. Due to the historical requirement to check for
+    the PowerHat, the arguments `with_dbus` and `retry_count` are no longer
+    used but some calls will still be made to them.
 
     Args:
-        with_dbus: See :func:`is_power_hat_plugged`
-        retry_count: See :func:`is_power_hat_plugged`
+        with_dbus: See :func:`is_power_hat_plugged` (unused)
+        retry_count: See :func:`is_power_hat_plugged` (unused)
 
     Returns:
         bool: Whether this is a CK2 Pro or not
     """
-    hat_connected = is_power_hat_plugged(
-        with_dbus=with_dbus, retry_count=retry_count
-    )
-
-    if not hat_connected:
-        return False
-
     kit, dummy_version = get_screen_version()
 
     return kit == CKC
@@ -160,9 +158,15 @@ def is_ck2_pro(with_dbus=True, retry_count=5):
 def is_ckt(with_dbus=True, retry_count=5):
     """Check if the hardware is recognised as a Computer Kit Touch.
 
-
     The determination is based on the PowerHat board being plugged in along with
     a matching EDID for the CKT kits.
+
+    This will become the default for any kit which has a PowerHat plugged in
+    and the EDID is unknown - essentially the implementation is that a PowerHat
+    is connected and it isn't a CKC; this is so that if any EDIDs slip through,
+    the kit will still function as intended.
+
+    Reimplement as the spec changes.
 
     Args:
         with_dbus: See :func:`is_power_hat_plugged`
@@ -178,9 +182,7 @@ def is_ckt(with_dbus=True, retry_count=5):
     if not hat_connected:
         return False
 
-    kit, dummy_version = get_screen_version()
-
-    return kit == CKT
+    return not is_ck2_pro(with_dbus, retry_count)
 
 
 def get_ck2_lite_version():
