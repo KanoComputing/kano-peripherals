@@ -13,6 +13,12 @@ from kano.logging import logger
 
 from kano_settings.system.display import get_edid_name
 
+from kano_peripherals.pi_hat.driver.service import PiHatService
+from kano_peripherals.pi_hat.driver.high_level import get_pihat_interface
+from kano_peripherals.ck2_pro_hat.driver.service import CK2ProHatService
+from kano_peripherals.ck2_pro_hat.driver.high_level import \
+    get_ck2_pro_hat_interface
+
 
 CKL, CKC, CKT = xrange(3)
 
@@ -54,9 +60,6 @@ def is_pi_hat_plugged(with_dbus=True, retry_count=5):
     Returns:
         bool: Whether the PiHat is plugged in or not
     """
-    from kano_peripherals.pi_hat.driver.service import PiHatService
-    from kano_peripherals.pi_hat.driver.high_level import get_pihat_interface
-
     is_plugged = False
 
     try:
@@ -86,10 +89,6 @@ def is_power_hat_plugged(with_dbus=True, retry_count=5):
     Returns:
         bool: Whether the PowerHat is plugged in or not
     """
-    from kano_peripherals.ck2_pro_hat.driver.service import CK2ProHatService
-    from kano_peripherals.ck2_pro_hat.driver.high_level import \
-            get_ck2_pro_hat_interface
-
     is_plugged = False
 
     try:

@@ -1,14 +1,12 @@
 #
 # kano_hat_leds.py
 #
-# Copyright (C) 2017 Kano Computing Ltd.
+# Copyright (C) 2017 - 2018 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
 # Adds LED support for the CK2 Lite Hat
 #
 
-
-import neopixel  # Pip install rpi_ws281x
 
 from kano_pi_hat.kano_hat import KanoHat
 
@@ -18,6 +16,13 @@ class KanoHatLeds(KanoHat):
     LED_PIN = 18
 
     def __init__(self, brightness=150):
+        # Pip install rpi_ws281x
+        #
+        # NB: Do this import inside the constructor so that only tests which
+        # explicitly require instantiating the class will require the import
+        # which is platform-dependent
+        import neopixel
+
         super(KanoHatLeds, self).__init__()
 
         self._leds = neopixel.Adafruit_NeoPixel(
