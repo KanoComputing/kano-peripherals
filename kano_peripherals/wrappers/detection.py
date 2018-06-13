@@ -40,8 +40,8 @@ EDID_MAP = {
     # characteristic to distinguish it was the model name of the screen
     # which was changed (to HTC-HDMI) for the second production run of CKCs.
     'HTC-HDMI': (CKC, CKC_V_1_1_0),
-    # FIXME: Insert the correct CKT EDID here when it is available
-    'CKT-HDMI': (CKT, CKT_V_1_0_0)
+    # v1.0 of the CKT
+    'HCK-HDMI': (CKT, CKT_V_1_0_0)
 }
 
 

@@ -21,7 +21,7 @@ HW_CONFIG = [
     HWConfig(HWConfig.CKL, CKL_V_1_0_0, 'ANY'),
     HWConfig(HWConfig.CKC, CKC_V_1_0_0, 'MST-HDMI'),
     HWConfig(HWConfig.CKC, CKC_V_1_1_0, 'HTC-HDMI'),
-    HWConfig(HWConfig.CKT, CKT_V_1_0_0, 'CKT-HDMI'),
+    HWConfig(HWConfig.CKT, CKT_V_1_0_0, 'HCK-HDMI'),
 ]
 
 
