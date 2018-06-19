@@ -27,7 +27,8 @@ class KanoHatLeds(KanoHat):
 
         self._leds = neopixel.Adafruit_NeoPixel(
             KanoHatLeds.LED_COUNT,
-            KanoHatLeds.LED_PIN
+            KanoHatLeds.LED_PIN,
+            dma=10
         )
 
         self.set_brightness(brightness)
