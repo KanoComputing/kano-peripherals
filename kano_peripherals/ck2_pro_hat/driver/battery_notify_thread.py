@@ -15,7 +15,7 @@ from kano.notifications import display_generic_notification, \
 from kano_profile.tracking_events import generate_event
 
 
-SHUTDOWN_WARN_TIME = 5 * 60  # seconds
+SHUTDOWN_WARN_TIME = 2 * 60  # seconds
 SHUTDOWN_TIMEOUT = 60  # seconds
 ERROR_NOTIF_IMAGE = '/usr/share/kano-peripherals/assets/low_battery_alert.png'
 ERROR_NOTIF_SOUND = '/usr/share/kano-media/sounds/kano_error.wav'
