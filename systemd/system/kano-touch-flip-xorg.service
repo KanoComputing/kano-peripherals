@@ -1,0 +1,21 @@
+#
+# kano-touch-flip-xorg.service
+#
+# This service installs or removes the Xorg
+# config to specify the current touch orientation
+
+[Unit]
+Description=Kano Xorg Touch Config
+DefaultDependencies=no
+
+Wants=local-fs-pre.target
+Before=lightdm.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/share/kano-peripherals/scripts/flip_xorg.sh
+
+[Install]
+WantedBy=lightdm.service
+

@@ -20,10 +20,9 @@ function exitStatus {
 
 function setXorgRotation {
     if exitStatus $1 ; then
-       TOUCH_DEVICES=$(touch-detect)
-       for device in $TOUCH_DEVICES; do
-           xinput set-prop $device 'libinput Calibration Matrix' -1.0 0.0 1.0 0.0 -1.0 1.0 0 0 1
-       done
+       ln -s /usr/share/kano-peripherals/xorg.conf.d/80-kano-touch.conf /usr/share/X11/xorg.conf.d/
+    else
+       rm /usr/share/X11/xorg.conf.d/80-kano-touch.conf
     fi
 }
 
