@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# kano-peripherals.postinst
+#
+# Copyright (C) 2017 Kano Computing Ltd.
+# License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPLv2
+#
+# Post debian package install script
+
+
+case "$1" in
+    configure)
+        # Enable systemd services
+        systemctl enable kano-touch-flip-xorg.service
+        ;;
+esac

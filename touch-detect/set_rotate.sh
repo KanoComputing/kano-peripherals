@@ -8,6 +8,5 @@
 .  /usr/share/kano-peripherals/scripts/rotate_fns.sh
 
 is_rotated; IS_ROTATED=$?
-setXorgRotation $IS_ROTATED
 setQtRotation  $IS_ROTATED
 exportQtRotation
