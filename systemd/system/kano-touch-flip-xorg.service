@@ -8,7 +8,7 @@
 Description=Kano Xorg Touch Config
 DefaultDependencies=no
 
-Wants=local-fs-pre.target
+After=local-fs.target
 Before=lightdm.service
 
 [Service]
