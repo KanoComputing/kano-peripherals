@@ -2,7 +2,7 @@
 
 # kano-boards-daemon
 #
-# Copyright (C) 2015 - 2017 Kano Computing Ltd.
+# Copyright (C) 2015-2018 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
 # The DBus daemon which handles Kano hardware board add-ons.
@@ -63,10 +63,13 @@ def only_hope():
     """
     from kano_pi_hat.kano_hat_leds import KanoHatLeds
 
-    # PiHatService
-    pi_hat = KanoHatLeds()
-    if pi_hat.is_connected():
-        pi_hat.set_all_leds([(0, 0, 0)] * 10)
+    try:
+        # PiHatService
+        pi_hat = KanoHatLeds()
+        if pi_hat.is_connected():
+            pi_hat.set_all_leds([(0, 0, 0)] * 10)
+    except:
+        logger.error("only_hope: Unexpected error: {}".format(traceback.format_exc()))
 
 
 def main(args):
@@ -103,6 +106,7 @@ def main(args):
                 'Unexpected error when starting the services.\n{}'
                 .format(traceback.format_exc())
             )
+            os.system('modprobe -i snd_bcm2835')
             return RC_UNKNOWN_EXCEPTION
 
         loop.run()

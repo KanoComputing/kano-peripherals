@@ -1,6 +1,6 @@
 # service_manager.py
 #
-# Copyright (C) 2017 Kano Computing Ltd.
+# Copyright (C) 2017-2018 Kano Computing Ltd.
 # License: http://www.gnu.org/licenses/gpl-2.0.txt GNU GPL v2
 #
 # A DBus service manager responsible for bringing up and taking down other services.
@@ -60,7 +60,11 @@ class ServiceManager(BaseDBusService):
         # The KanoHatLeds object cannot be created when the audio module is loaded
         # otherwise the neopixel lib gets mad. The audio module is blacklisted so we
         # load it after the object creation.
-        self.pi_hat_lib = KanoHatLeds()
+        try:
+            self.pi_hat_lib = KanoHatLeds()
+        except:
+            logger.error("ServiceManager: Unexpected error when instantiating"
+                         "KanoHatLeds: {}".format(traceback.format_exc()))
         os.system('modprobe -i snd_bcm2835')
 
         # All services that need to be started and stopped by this daemon.
