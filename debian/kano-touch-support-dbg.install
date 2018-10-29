@@ -1,0 +1,2 @@
+touch-detect/build/debug/bin/touch-detect usr/lib/debug/usr/bin/
+touch-detect/build/debug/lib/*.so usr/lib/debug/usr/lib

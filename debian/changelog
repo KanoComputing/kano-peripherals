@@ -1,6 +1,7 @@
 kano-peripherals (4.2.0-0) unstable; urgency=low
 
   * Fixed an issue where the sound module wouldn't be loaded when daemon crashed
+  * Make the touch-detect tool into a library
 
  -- Team Kano <dev@kano.me>  Thu, 4 Oct 2018 17:54:00 +0100
 

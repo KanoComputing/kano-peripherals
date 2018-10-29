@@ -24,6 +24,10 @@ cscope.po.out
 reports
 .pytest_cache
 
+# Build dirs
+touch-detect/release
+touch-detect/debug
+
 
 # Created by https://www.gitignore.io/api/python,c,c++,vim,osx,sublimetext,cmake
 

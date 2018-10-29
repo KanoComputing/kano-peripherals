@@ -7,7 +7,7 @@
 
 REPO:= kano-peripherals
 
-.PHONY: clean docs libs
+.PHONY: clean docs libs touch-detect
 
 clean:
 	cd docs && make clean
@@ -17,6 +17,10 @@ docs:
 
 libs:
 	cd libs/pi_hat && cmake . && make
+
+touch-detect:
+	cd touch-detect && make release
+	cd touch-detect && make debug
 
 #
 # Add test targets

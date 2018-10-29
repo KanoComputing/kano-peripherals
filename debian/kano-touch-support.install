@@ -1,3 +1,5 @@
-touch-detect/touch-detect usr/bin/
-touch-detect/*.sh  usr/share/kano-peripherals/scripts/
-conf/xorg.conf.d/* usr/share/kano-peripherals/xorg.conf.d/
+touch-detect/build/release/bin/touch-detect usr/bin/
+touch-detect/build/release/lib/*.so usr/lib/
+touch-detect/scripts/*.sh  usr/share/kano-peripherals/scripts/
+touch-detect/conf/xorg.conf.d/* usr/share/kano-peripherals/xorg.conf.d/
+touch-detect/conf/etc/* etc/

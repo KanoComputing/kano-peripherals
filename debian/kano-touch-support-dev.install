@@ -1,0 +1,2 @@
+touch-detect/include/* usr/include/
+touch-detect/build/release/lib/*.a usr/lib

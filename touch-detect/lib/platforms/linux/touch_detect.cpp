@@ -1,6 +1,6 @@
 /**
  *
- * touch-detect
+ * touch_detect.cpp
  *
  * Copyright (C) 2018 Kano Computing Ltd.
  * License: MIT
@@ -17,46 +17,49 @@
  *
  */
 
+
 #include <X11/Xlib.h>
 #include <X11/extensions/XInput.h>
 #include <X11/extensions/XInput2.h>
 #include <stdio.h>
 #include <syslog.h>
 
-int isTouch(void) {
-    int found = 1;
-    Display     *display = XOpenDisplay(NULL);
-    int ndevices=0, i, j;
-    if(!display)
-    {
+
+#include <Kano/TouchDetect/touch_detect.h>
+
+
+bool Kano::TouchDetect::isTouchSupported() {
+    bool found = false;
+    Display *display = XOpenDisplay(nullptr);
+    int ndevices = 0;
+
+    if (!display) {
         syslog(LOG_ERR | LOG_USER, "touch-detect: could not connect to display\n");
-        exit(1);
+        return false;
     }
 
-    XIDeviceInfo *info, *dev;
-    info = XIQueryDevice(display, XIAllDevices, &ndevices);
-    for(i = 0; i < ndevices; i++)
-    {
-        dev = &info[i];
-        if(dev->use != XISlavePointer)
+    XIDeviceInfo *info = XIQueryDevice(display, XIAllDevices, &ndevices);
+
+    for (int i = 0; i < ndevices; i++) {
+        XIDeviceInfo *dev = &info[i];
+
+        if (dev->use != XISlavePointer)
             continue;
+
         dev->classes, dev->num_classes;
-        for (j = 0; j < dev->num_classes; j++)
-        {                
-            if(dev->classes[j]->type == XITouchClass)
-            {
+
+        for (int j = 0; j < dev->num_classes; j++) {
+            if (dev->classes[j]->type == XITouchClass) {
                 printf("%d\n", dev->deviceid);
-                found = 0;
+                found = true;
             }
         }
     }
+
     XIFreeDeviceInfo(info);
+
     if (display)
         XCloseDisplay(display);
-    return found;
-}
 
-int main(int argc, char * argv[])
-{
-    return isTouch();
+    return found;
 }

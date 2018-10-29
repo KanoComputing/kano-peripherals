@@ -59,3 +59,17 @@ Depends:
     libxi6
 Description: Support for touchscreen detection and flipping
 
+Package: kano-touch-support-dev
+Architecture: any
+Depends:
+    ${misc:Depends},
+    kano-touch-support
+Description: Development tools to support touchscreen detection and flipping
+
+Package: kano-touch-support-dbg
+Architecture: any
+Depends:
+    ${misc:Depends},
+    kano-touch-support
+Description: Debug symbols for support for touchscreen detection and flipping
+
